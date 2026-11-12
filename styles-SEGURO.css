@@ -1,0 +1,694 @@
+/* ==============================================================================
+ * ARCHIVO SEGURO PARA SUBIR A GITHUB - VANETRACKER (V4.0)
+ * HOJA DE ESTILOS: styles-SEGURO.css
+ * IDENTIDAD: "Duolingo meets Notion - Cuchi & Elegante"
+ * ============================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap');
+
+:root {
+  --bg-cream: #FAF8F5;
+  --card-bg: #FFFFFF;
+  --text-primary: #2B2F38;
+  --text-secondary: #70757E;
+  --border-subtle: #ECE5DC;
+
+  /* Colores Pastel Cuchis */
+  --sage-main: #88A28E;
+  --sage-light: #EBF1EC;
+  --sage-dark: #6D8874;
+
+  --rose-main: #D9969D;
+  --rose-light: #FBF0F1;
+  --rose-dark: #BF787F;
+
+  --lavender-main: #9C8EC9;
+  --lavender-light: #F2EFF9;
+  --lavender-dark: #8172AF;
+
+  --peach-main: #E8927C;
+  --peach-light: #FCF1EE;
+  --peach-dark: #CF735C;
+
+  --gold-main: #E5A93C;
+  --gold-light: #FEF7E8;
+  --gold-dark: #C98E24;
+
+  --blue-main: #7BAFD4;
+  --blue-light: #EEF5FA;
+  --blue-dark: #5F95BC;
+
+  /* Sombras Sutiles */
+  --shadow-soft: 0 4px 20px -2px rgba(43, 47, 56, 0.05);
+  --shadow-card: 0 8px 30px -4px rgba(43, 47, 56, 0.08);
+  --shadow-floating: 0 12px 36px -4px rgba(43, 47, 56, 0.12);
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: var(--bg-cream);
+  color: var(--text-primary);
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+  padding-bottom: 140px;
+}
+
+h1, h2, h3, .font-serif {
+  font-family: 'Playfair Display', Georgia, serif;
+}
+
+/* ==============================================================================
+ * 1. REGLA CRÍTICA ANTI-APILAMIENTO DE VISTAS (TABS OCULTOS)
+ * ============================================================================== */
+.tab-content,
+.view-section {
+  display: none !important;
+}
+
+.tab-content.active,
+.view-section.active {
+  display: block !important;
+  animation: fadeInView 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes fadeInView {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.main-container-safe {
+  padding-bottom: 140px !important;
+}
+
+/* ==============================================================================
+ * 2. BARRA SUPERIOR FIJA LIMPIA
+ * ============================================================================== */
+.top-navbar-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(250, 248, 245, 0.94);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(236, 229, 220, 0.85);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+}
+
+/* ==============================================================================
+ * 3. BARRA DE NAVEGACIÓN INFERIOR FIJA FLOTANTE (ESTILO CUCHI)
+ * ============================================================================== */
+.bottom-floating-nav {
+  position: fixed;
+  bottom: calc(14px + env(safe-area-inset-bottom, 14px));
+  left: 12px;
+  right: 12px;
+  z-index: 99999;
+  max-width: 540px;
+  margin: 0 auto;
+  pointer-events: auto;
+}
+
+.bottom-nav-scroll-container {
+  display: flex;
+  flex-direction: row;
+  overflow-x: auto;
+  white-space: nowrap;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  padding: 10px 14px;
+  border-radius: 26px;
+  border: 1px solid rgba(226, 218, 208, 0.95);
+  box-shadow: 0 10px 28px rgba(43, 47, 56, 0.12);
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.bottom-nav-scroll-container::-webkit-scrollbar {
+  display: none;
+}
+
+.bottom-nav-btn {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 18px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #6B7280;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.bottom-nav-btn:hover {
+  background: rgba(245, 242, 236, 0.85);
+  color: #2B2F38;
+}
+
+.bottom-nav-btn.active {
+  background: var(--sage-main);
+  color: #FFFFFF;
+  box-shadow: 0 4px 14px rgba(136, 162, 142, 0.4);
+}
+
+.bottom-nav-btn.active span {
+  color: #FFFFFF;
+}
+
+/* ==============================================================================
+ * 4. BOTONES TÁCTILES 3D ESTILO DUOLINGO
+ * ============================================================================== */
+.btn-tactile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.08s ease-in-out;
+  border-radius: 18px;
+  position: relative;
+  text-decoration: none;
+  border: none;
+  outline: none;
+}
+
+.btn-tactile:active {
+  transform: translateY(3px) !important;
+}
+
+.btn-tactile-sage {
+  background-color: var(--sage-main);
+  color: #FFFFFF;
+  border-bottom: 4px solid var(--sage-dark);
+}
+.btn-tactile-sage:active {
+  border-bottom-width: 1px;
+}
+
+.btn-tactile-rose {
+  background-color: var(--rose-main);
+  color: #FFFFFF;
+  border-bottom: 4px solid var(--rose-dark);
+}
+.btn-tactile-rose:active {
+  border-bottom-width: 1px;
+}
+
+.btn-tactile-gold {
+  background-color: var(--gold-main);
+  color: #FFFFFF;
+  border-bottom: 4px solid var(--gold-dark);
+}
+.btn-tactile-gold:active {
+  border-bottom-width: 1px;
+}
+
+.btn-tactile-lavender {
+  background-color: var(--lavender-main);
+  color: #FFFFFF;
+  border-bottom: 4px solid var(--lavender-dark);
+}
+.btn-tactile-lavender:active {
+  border-bottom-width: 1px;
+}
+
+.btn-tactile-peach {
+  background-color: var(--peach-main);
+  color: #FFFFFF;
+  border-bottom: 4px solid var(--peach-dark);
+}
+.btn-tactile-peach:active {
+  border-bottom-width: 1px;
+}
+
+.btn-tactile-white {
+  background-color: #FFFFFF;
+  color: var(--text-primary);
+  border: 1px solid #ECE5DC;
+  border-bottom: 3.5px solid #D6CDC1;
+}
+.btn-tactile-white:active {
+  border-bottom-width: 1px;
+}
+
+.btn-tactile-danger {
+  background-color: #EF4444;
+  color: #FFFFFF;
+  border-bottom: 4px solid #B91C1C;
+}
+.btn-tactile-danger:active {
+  border-bottom-width: 1px;
+}
+
+/* ==============================================================================
+ * 5. PÍLDORAS DE PROPIEDADES ESTILO NOTION (PROPERTY PILLS)
+ * ============================================================================== */
+.notion-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.pill-sage { background-color: var(--sage-light); color: var(--sage-dark); }
+.pill-rose { background-color: var(--rose-light); color: var(--rose-dark); }
+.pill-lavender { background-color: var(--lavender-light); color: var(--lavender-dark); }
+.pill-peach { background-color: var(--peach-light); color: var(--peach-dark); }
+.pill-gold { background-color: var(--gold-light); color: var(--gold-dark); }
+.pill-blue { background-color: var(--blue-light); color: var(--blue-dark); }
+.pill-gray { background-color: #F1EFEA; color: #5E636E; }
+
+/* Callout Notion */
+.notion-callout {
+  background: #FFFFFF;
+  border: 1px solid #EFEAE2;
+  border-left: 5px solid var(--peach-main);
+  border-radius: 20px;
+  padding: 1.1rem 1.25rem;
+  box-shadow: var(--shadow-soft);
+  transition: all 0.2s ease;
+}
+
+.notion-callout:hover {
+  border-color: #E6D2C4;
+  box-shadow: 0 6px 24px -2px rgba(232, 146, 124, 0.15);
+}
+
+/* ==============================================================================
+ * 6. CARPETAS GLOBALES Y ACORDEÓN MEJORADO (CRUD REAL)
+ * ============================================================================== */
+.folder-box {
+  margin-bottom: 1.25rem;
+}
+
+.folder-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: #F9F6F1;
+  border: 1px solid #ECE4DA;
+  border-radius: 18px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.folder-header:hover {
+  background: #F3EFE9;
+  border-color: #DFD7CD;
+}
+
+.folder-chevron {
+  display: inline-block;
+  transition: transform 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.folder-box.folder-collapsed .folder-chevron {
+  transform: rotate(-90deg);
+}
+
+.folder-content {
+  margin-top: 0.65rem;
+  transition: all 0.2s ease;
+}
+
+.folder-box.folder-collapsed .folder-content {
+  display: none !important;
+}
+
+/* ==============================================================================
+ * 7. TARJETAS DE HÁBITOS (TOGGLE REAL, FOTOS Y COMENTARIOS)
+ * ============================================================================== */
+.card-clean {
+  background: var(--card-bg);
+  border-radius: 22px;
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-soft);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.card-clean:hover {
+  box-shadow: var(--shadow-card);
+  border-color: #DFD8CD;
+}
+
+.habit-card {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+  border-radius: 20px;
+}
+
+.habit-card.completed {
+  background: linear-gradient(135deg, #FFFFFF 70%, #EBF8EE 100%) !important;
+  border-color: #88C59A !important;
+  box-shadow: 0 4px 18px rgba(136, 197, 154, 0.2);
+}
+
+.habit-card.uncompleted {
+  background: #FFFFFF;
+  border-color: rgba(226, 218, 208, 0.8);
+}
+
+.habit-card.failed {
+  background: linear-gradient(135deg, #FFFFFF 80%, #FDF2F2 100%) !important;
+  border-color: #F8B4B4 !important;
+}
+
+/* Indicador de Racha */
+.flame-active {
+  display: inline-block;
+  animation: flamePulse 1.8s infinite ease-in-out;
+}
+
+@keyframes flamePulse {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 2px rgba(229, 169, 60, 0.4)); }
+  50% { transform: scale(1.18); filter: drop-shadow(0 0 8px rgba(229, 169, 60, 0.7)); }
+}
+
+/* Escala de Emociones */
+.mood-pill-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem 0.6rem;
+  border-radius: 16px;
+  border: 1.5px solid #EBE5DC;
+  background: #FFFFFF;
+  cursor: pointer;
+  transition: all 0.15s cubic-bezier(0.2, 0.8, 0.2, 1);
+  user-select: none;
+  min-width: 58px;
+}
+
+.mood-pill-btn:hover {
+  transform: translateY(-2px);
+  border-color: #D9969D;
+  background: #FCF9F7;
+}
+
+.mood-pill-btn.active {
+  background: #FDF0F1;
+  border-color: #D9969D;
+  box-shadow: 0 0 0 3px rgba(217, 150, 157, 0.25);
+  transform: scale(1.05);
+}
+
+/* ==============================================================================
+ * 8. MÓDULO DE CICLO MENSTRUAL & CARRUSEL MULTI-MES
+ * ============================================================================== */
+.cycle-phase-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.9rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.phase-menstrual {
+  background: #FCF1EE;
+  color: #CF735C;
+  border: 1px solid rgba(232, 146, 124, 0.4);
+}
+
+.phase-follicular {
+  background: #EBF1EC;
+  color: #6D8874;
+  border: 1px solid rgba(136, 162, 142, 0.4);
+}
+
+.phase-ovulation {
+  background: #FEF7E8;
+  color: #C98E24;
+  border: 1px solid rgba(229, 169, 60, 0.4);
+}
+
+.phase-luteal {
+  background: #F2EFF9;
+  color: #8172AF;
+  border: 1px solid rgba(156, 142, 201, 0.4);
+}
+
+/* Contenedor Carrusel Horizontal Multi-Mes */
+.cycle-multimonth-wrapper {
+  overflow-x: auto;
+  display: flex;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  gap: 16px;
+  padding: 4px 2px 14px 2px;
+  scrollbar-width: thin;
+}
+
+.cycle-month-pane {
+  flex: 0 0 100%;
+  max-width: 100%;
+  scroll-snap-align: center;
+  background: #FFFFFF;
+  border-radius: 20px;
+  padding: 12px;
+  border: 1px solid #ECE5DC;
+}
+
+@media (min-width: 768px) {
+  .cycle-month-pane {
+    flex: 0 0 calc(33.333% - 11px);
+    max-width: calc(33.333% - 11px);
+  }
+}
+
+/* Celdas del Calendario del Ciclo */
+.cycle-day-cell {
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  transition: all 0.12s ease;
+  position: relative;
+}
+
+.cycle-day-cell:hover {
+  transform: scale(1.12);
+  z-index: 10;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+}
+
+.cycle-day-cell.day-menstrual {
+  background-color: #FDE8E8 !important;
+  color: #C53030 !important;
+  border-color: #FEB2B2 !important;
+}
+
+.cycle-day-cell.day-follicular {
+  background-color: #E8F5E9 !important;
+  color: #2F855A !important;
+  border-color: #9AE6B4 !important;
+}
+
+.cycle-day-cell.day-ovulation {
+  background-color: #FEF7E8 !important;
+  color: #C98E24 !important;
+  border-color: #FBD38D !important;
+  box-shadow: 0 0 0 1.5px rgba(201, 142, 36, 0.4);
+}
+
+.cycle-day-cell.day-luteal {
+  background-color: #FFF0EB !important;
+  color: #C05621 !important;
+  border-color: #FBD38D !important;
+}
+
+.cycle-day-cell.is-today {
+  box-shadow: 0 0 0 2px #2B2F38 !important;
+  font-weight: 800;
+}
+
+/* Píldoras de Síntomas */
+.symptom-tag-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 14px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: 1px solid #ECE5DC;
+  background: #FFFFFF;
+  color: #555;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s ease;
+}
+
+.symptom-tag-pill.active {
+  background: #FBF0F1;
+  color: #BF787F;
+  border-color: #D9969D;
+  box-shadow: 0 0 0 2px rgba(217, 150, 157, 0.25);
+  font-weight: 700;
+}
+
+/* ==============================================================================
+ * 9. POP-UP LIGHTBOX ELEGANTE ESTILO "APP DE BODA"
+ * ============================================================================== */
+.lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(30, 32, 38, 0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 100000;
+  padding: 1rem;
+}
+
+.lightbox-overlay.open {
+  display: flex !important;
+  animation: popIn 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.94); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.lightbox-modal {
+  background: #FFFFFF;
+  border-radius: 28px;
+  max-width: 620px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  border: 1px solid rgba(236, 229, 220, 0.8);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25);
+  padding: 1.5rem;
+}
+
+.lightbox-img-full {
+  width: 100%;
+  max-height: 55vh;
+  object-fit: contain;
+  border-radius: 20px;
+  background: #FAF8F5;
+  border: 1px solid #ECE5DC;
+  cursor: zoom-in;
+  transition: transform 0.2s ease;
+}
+
+/* ==============================================================================
+ * 10. SUBTOGGLE PÍLDORAS & MODALES GENERALES
+ * ============================================================================== */
+.subtoggle-container {
+  background: #EFEBE4;
+  border-radius: 16px;
+  padding: 4px;
+  display: inline-flex;
+}
+
+.subtoggle-btn {
+  border: none;
+  background: transparent;
+  padding: 6px 14px;
+  border-radius: 12px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.subtoggle-btn.active {
+  background: #FFFFFF;
+  color: var(--text-primary);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(43, 47, 56, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 1rem;
+}
+
+.modal-overlay.open {
+  display: flex !important;
+}
+
+.animate-pop {
+  animation: popIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Emojis */
+.emoji-tab-btn {
+  padding: 5px 11px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  border-radius: 12px;
+  border: 1px solid #ECE5DC;
+  background: #FFFFFF;
+  color: #6B7280;
+  cursor: pointer;
+}
+
+.emoji-tab-btn.active {
+  background: var(--sage-main);
+  color: #FFFFFF;
+  border-color: var(--sage-main);
+}
+
+.emoji-grid-item {
+  font-size: 1.45rem;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+
+.emoji-grid-item:hover {
+  background: #F0ECE4;
+  transform: scale(1.18);
+}

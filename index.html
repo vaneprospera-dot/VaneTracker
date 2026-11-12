@@ -1,0 +1,977 @@
+<!-- ARCHIVO SEGURO PARA SUBIR A GITHUB -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>VaneTracker | Hábitos, Diario & Ciclo Menstrual</title>
+  
+  <!-- PWA & Metadatos Seguros -->
+  <link rel="manifest" href="./manifest.json" />
+  <meta name="theme-color" content="#FAF8F5" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <link rel="icon" type="image/png" href="./assets-SEGURO/icon-192.png" />
+
+  <script>
+    // Limpieza proactiva de Service Workers obsoletos
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function(registrations) {
+        for (let registration of registrations) {
+          registration.update();
+        }
+      });
+    }
+  </script>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            cream: '#FAF8F5',
+            sage: { DEFAULT: '#88A28E', light: '#EBF1EC', dark: '#6D8874' },
+            rose: { DEFAULT: '#D9969D', light: '#FBF0F1', dark: '#BF787F' },
+            lavender: { DEFAULT: '#9C8EC9', light: '#F2EFF9', dark: '#8172AF' },
+            peach: { DEFAULT: '#E8927C', light: '#FCF1EE', dark: '#CF735C' },
+            gold: { DEFAULT: '#E5A93C', light: '#FEF7E8', dark: '#C98E24' },
+            blue: { DEFAULT: '#7BAFD4', light: '#EEF5FA', dark: '#5F95BC' }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Canvas Confetti CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+  <!-- Regla Crítica Inline Anti-Apilamiento de Vistas -->
+  <style>
+    .view-section, .tab-content { display: none !important; }
+    .view-section.active, .tab-content.active { display: block !important; }
+  </style>
+
+  <!-- Hoja de Estilos Segura -->
+  <link rel="stylesheet" href="./styles-SEGURO.css" />
+</head>
+<body class="bg-[#FAF8F5] text-stone-800 antialiased selection:bg-rose-200">
+
+  <!-- ========================================================================= -->
+  <!-- 1. ENCABEZADO SUPERIOR FIJO (BRAND, RACHA, SONIDO Y AJUSTES) -->
+  <!-- ========================================================================= -->
+  <header class="top-navbar-sticky">
+    <div class="max-w-4xl mx-auto flex items-center justify-between px-3.5 py-2.5">
+      
+      <!-- Brand Limpio -->
+      <div class="flex items-center gap-2 cursor-pointer" onclick="goToToday(); switchTab('habits');">
+        <span class="text-xl">🌸</span>
+        <span class="font-serif font-bold text-lg text-stone-800 tracking-tight">VaneTracker</span>
+      </div>
+
+      <!-- Acciones: Racha (🔥), Sonido (🔊) y Configuración (⚙️) -->
+      <div class="flex items-center gap-2">
+        <!-- Badge de Racha -->
+        <div class="flex items-center gap-1 bg-amber-50 border border-amber-200/80 px-2.5 py-1 rounded-xl shadow-xs" title="Tu racha de días consecutivos">
+          <span class="flame-active text-xs">🔥</span>
+          <span id="header-streak-count" class="font-extrabold text-amber-900 text-xs">7</span>
+        </div>
+        <!-- Botón de Sonido -->
+        <button id="sound-toggle-btn" onclick="toggleSound()" class="w-8 h-8 rounded-xl bg-white border border-stone-200 flex items-center justify-center text-stone-600 hover:bg-stone-100 transition-colors text-sm shadow-xs" title="Alternar Sonido">
+          🔊
+        </button>
+        <!-- Botón de Configuración -->
+        <button onclick="openSettingsModal()" class="w-8 h-8 rounded-xl bg-white border border-stone-200 flex items-center justify-center text-stone-600 hover:bg-stone-100 transition-colors text-sm shadow-xs" title="Configuración & Base de Datos">
+          ⚙️
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ========================================================================= -->
+  <!-- CONTENEDOR PRINCIPAL CON PADDING SEGURO -->
+  <!-- ========================================================================= -->
+  <main class="max-w-4xl mx-auto px-4 pt-4 main-container-safe">
+
+    <!-- ======================================================================= -->
+    <!-- PESTAÑA 1: TRACKER DE HÁBITOS (CRUD TOTAL Y TOGGLE) -->
+    <!-- ======================================================================= -->
+    <section id="tab-habits" class="view-section tab-content active space-y-4">
+
+      <!-- Reflexión Diaria de Notion -->
+      <div class="notion-callout flex items-start justify-between gap-3">
+        <div class="flex items-start gap-2.5">
+          <span class="text-2xl mt-0.5">✨</span>
+          <div>
+            <p class="text-[10px] font-extrabold text-rose-500 uppercase tracking-wider">Reflexión de Hoy para ti</p>
+            <p id="daily-quote-text" class="font-serif text-xs md:text-sm text-stone-700 italic mt-0.5 leading-relaxed">
+              Cargando tu mensaje bonito de hoy...
+            </p>
+          </div>
+        </div>
+        <button onclick="shuffleDailyQuote()" class="text-stone-400 hover:text-stone-700 text-sm p-1 transition-transform active:rotate-180" title="Ver otra frase bonita">
+          🔄
+        </button>
+      </div>
+
+      <!-- Alerta de Fecha Retroactiva (Si ve el pasado) -->
+      <div id="retroactive-date-banner" class="hidden p-3 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center justify-between shadow-xs">
+        <span class="flex items-center gap-2">
+          <span>📅</span>
+          <span id="retroactive-banner-text">Viendo hábitos pasados</span>
+        </span>
+        <button onclick="goToToday()" class="btn-tactile btn-tactile-white px-2.5 py-1 text-[11px] font-bold">
+          Volver a Hoy ↩
+        </button>
+      </div>
+
+      <!-- Navegador de Fecha Elegante -->
+      <div class="card-clean p-3.5 flex items-center justify-between">
+        <button onclick="navigateDate(-1)" class="w-8 h-8 rounded-xl bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-xs font-bold transition-colors">
+          ◀
+        </button>
+        <div class="flex items-center gap-2 cursor-pointer" onclick="document.getElementById('native-date-input').showPicker ? document.getElementById('native-date-input').showPicker() : document.getElementById('native-date-input').focus()">
+          <span class="text-sm">🗓️</span>
+          <span id="current-date-display" class="font-serif font-bold text-sm md:text-base text-stone-800">
+            Cargando fecha...
+          </span>
+          <input type="date" id="native-date-input" class="sr-only" onchange="onNativeDateChange(this.value)" />
+        </div>
+        <div class="flex items-center gap-1.5">
+          <button onclick="goToToday()" class="btn-tactile btn-tactile-white px-2.5 py-1 text-[11px] font-bold" title="Ir al día de hoy">
+            Hoy
+          </button>
+          <button onclick="navigateDate(1)" class="w-8 h-8 rounded-xl bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-xs font-bold transition-colors">
+            ▶
+          </button>
+        </div>
+      </div>
+
+      <!-- Escala de Emoción Diaria (1 a 5) -->
+      <div class="card-clean p-4">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-bold text-stone-600">¿Cómo te sientes hoy, Vane?</span>
+          <span class="text-[11px] text-stone-400">Toca para guardar tu ánimo</span>
+        </div>
+        <div id="habit-mood-selector" class="flex items-center justify-between gap-1 overflow-x-auto py-1">
+          <!-- Renderizado dinámico -->
+        </div>
+      </div>
+
+      <!-- Barra de Progreso Diario Duolingo -->
+      <div class="card-clean p-4">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <span class="text-base">🎯</span>
+            <span class="text-xs font-bold text-stone-700">Tus Hábitos</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span id="daily-progress-text" class="text-xs font-bold text-stone-500">0 de 0 completados hoy</span>
+            <span id="daily-progress-percent" class="notion-pill pill-sage text-[11px] font-extrabold">0%</span>
+          </div>
+        </div>
+        <div class="w-full bg-stone-100 rounded-full h-3 overflow-hidden p-0.5">
+          <div id="daily-progress-bar"
+               class="bg-gradient-to-r from-emerald-400 to-teal-500 h-full rounded-full transition-all duration-500 shadow-xs"
+               style="width: 0%;"></div>
+        </div>
+      </div>
+
+      <!-- Botones de Acción: Nueva Carpeta y Nuevo Hábito -->
+      <div class="flex items-center justify-between gap-2">
+        <button type="button" onclick="openNewFolderModal()" class="btn-tactile btn-tactile-white px-3 py-2 text-xs gap-1.5 shadow-xs">
+          <span>📁</span>
+          <span>+ Carpeta</span>
+        </button>
+        <button type="button" onclick="openNewHabitModal()" class="btn-tactile btn-tactile-sage px-3.5 py-2 text-xs gap-1.5 shadow-xs">
+          <span>✨</span>
+          <span>+ Nuevo Hábito</span>
+        </button>
+      </div>
+
+      <!-- Lista de Hábitos Agrupados por Carpetas Colapsables (CRUD y Toggle) -->
+      <div id="habits-list-container" class="space-y-3">
+        <!-- Renderizado dinámico con carpetas, editar y hábitos -->
+      </div>
+
+    </section>
+
+    <!-- ======================================================================= -->
+    <!-- PESTAÑA 2: DIARIO PERSONAL ("MOMENTOS Y NOTAS") -->
+    <!-- ======================================================================= -->
+    <section id="tab-journal" class="view-section tab-content space-y-4">
+      
+      <!-- Sub-Toggle Diario -->
+      <div class="flex items-center justify-between gap-3">
+        <div class="subtoggle-container">
+          <button id="subtoggle-journal-write" onclick="switchJournalSubtab('write')" class="subtoggle-btn active">
+            ✍️ Escribir Nota
+          </button>
+          <button id="subtoggle-journal-feed" onclick="switchJournalSubtab('feed')" class="subtoggle-btn">
+            🖼️ Galería y Recuerdos
+          </button>
+        </div>
+      </div>
+
+      <!-- Sub-vista 1: Escribir Nota -->
+      <div id="journal-sub-write" class="space-y-4">
+        <div class="card-clean p-5 space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="font-serif font-bold text-base text-stone-800" id="journal-form-title">Escribir Nota / Nueva Memoria</h3>
+            <span class="text-xs text-stone-400" id="journal-current-date-lbl">Hoy</span>
+          </div>
+
+          <!-- Selector de Categorías -->
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <label class="block text-xs font-bold text-stone-600">Categoría del Momento:</label>
+              <button type="button" onclick="promptNewJournalCategory()" class="text-[11px] text-rose-500 font-bold hover:underline">
+                + Nueva Etiqueta
+              </button>
+            </div>
+            <div id="journal-categories-selector" class="flex flex-wrap gap-1.5">
+              <!-- Renderizado dinámico -->
+            </div>
+          </div>
+
+          <!-- Selector de Emoción para la Nota -->
+          <div>
+            <label class="block text-xs font-bold text-stone-600 mb-1.5">¿Cómo te sientes en esta nota?</label>
+            <div id="journal-mood-selector" class="flex gap-1.5 overflow-x-auto py-1">
+              <!-- Renderizado dinámico -->
+            </div>
+          </div>
+
+          <!-- Texto de la Nota -->
+          <div>
+            <label class="block text-xs font-bold text-stone-600 mb-1">Tu Mensaje, Nota o Anécdota:</label>
+            <textarea id="journal-note-input"
+                      rows="4"
+                      placeholder="Escribe lo que sientes, lo que pasó con Matilda, o tus pensamientos más lindos..."
+                      class="w-full text-xs md:text-sm p-3.5 rounded-2xl border border-stone-200 bg-stone-50/70 focus:bg-white focus:outline-none focus:ring-2 focus:ring-rose-200 transition-all"></textarea>
+          </div>
+
+          <!-- Adjuntar Fotografía -->
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <label class="block text-xs font-bold text-stone-600">Fotografía o Recuerdo Especial:</label>
+              <span class="text-[10px] text-stone-400">Guarda en Drive y Local</span>
+            </div>
+            <input type="file"
+                   id="journal-photo-input"
+                   accept="image/*"
+                   onchange="handleJournalPhotoSelect(event)"
+                   class="hidden" />
+            <button type="button"
+                    onclick="document.getElementById('journal-photo-input').click()"
+                    class="btn-tactile btn-tactile-white px-3.5 py-2 text-xs gap-1.5">
+              <span>📷</span>
+              <span>Adjuntar Foto</span>
+            </button>
+
+            <!-- Preview Foto -->
+            <div id="photo-preview-container" class="mt-2.5 relative hidden inline-block">
+              <img id="photo-preview-img" src="" alt="Foto seleccionada" class="w-32 h-32 object-cover rounded-2xl border-2 border-stone-200 shadow-sm" />
+              <button onclick="removeSelectedJournalPhoto()" class="absolute -top-2 -right-2 bg-stone-800 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs shadow-md hover:bg-rose-600 transition-colors">✕</button>
+            </div>
+          </div>
+
+          <!-- ID Oculto para Edición -->
+          <input type="hidden" id="journal-editing-id" value="" />
+
+          <div class="flex gap-2">
+            <button id="save-journal-btn" onclick="saveJournalEntry()" class="flex-1 btn-tactile btn-tactile-rose py-3 text-xs md:text-sm gap-2 shadow-xs">
+              <span>✨</span>
+              <span id="save-journal-btn-text">Guardar Recuerdo en el Diario</span>
+            </button>
+            <button id="cancel-journal-edit-btn" onclick="cancelJournalEdit()" class="hidden btn-tactile btn-tactile-white px-3 py-3 text-xs">
+              Cancelar
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sub-vista 2: Galería y Recuerdos (Historial) -->
+      <div id="journal-sub-feed" class="hidden space-y-4">
+        <div class="card-clean p-4">
+          <div class="relative mb-3">
+            <input type="text"
+                   placeholder="🔍 Buscar por palabra clave, fecha o anécdota..."
+                   oninput="onJournalSearch(this.value)"
+                   class="w-full text-xs md:text-sm px-4 py-2 rounded-xl border border-stone-200 bg-stone-50/70 focus:bg-white focus:outline-none" />
+          </div>
+          <div id="journal-filter-pills" class="flex flex-wrap gap-1.5">
+            <!-- Píldoras de filtro -->
+          </div>
+        </div>
+
+        <div id="journal-feed-container" class="space-y-3">
+          <!-- Renderizado dinámico de tarjetas con lightbox al clic -->
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ======================================================================= -->
+    <!-- PESTAÑA 3: CICLO MENSTRUAL & DIARIO DE CICLO (DINÁMICO MULTI-MES) -->
+    <!-- ======================================================================= -->
+    <section id="tab-cycle" class="view-section tab-content space-y-4">
+      
+      <!-- Tarjeta de Estado del Ciclo & Proyección -->
+      <div class="card-clean p-5 md:p-6 bg-gradient-to-br from-white via-[#FFFBFB] to-[#FDF5F5]">
+        <div class="flex items-center justify-between gap-3 mb-3">
+          <div>
+            <h2 class="font-serif font-bold text-xl text-stone-800">Tu Ciclo & Bienestar</h2>
+            <p class="text-xs text-stone-400">Acompañando tus ritmos con amor y delicadeza</p>
+          </div>
+          <div id="cycle-phase-badge" class="cycle-phase-badge phase-menstrual">
+            Fase Menstrual
+          </div>
+        </div>
+
+        <!-- Proyección Inteligente -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 my-4">
+          <div class="p-3.5 rounded-2xl bg-white border border-rose-200/60 shadow-xs flex items-center gap-3">
+            <div class="w-12 h-12 rounded-2xl bg-rose-50 flex items-center justify-center text-2xl">
+              🩸
+            </div>
+            <div>
+              <p class="text-[11px] font-bold text-stone-400 uppercase">Próximo Período</p>
+              <p class="font-bold text-base text-rose-900 mt-0.5">
+                En aprox. <span id="cycle-countdown-days" class="text-rose-600 font-extrabold text-lg">28</span> días
+              </p>
+            </div>
+          </div>
+
+          <div class="p-3.5 rounded-2xl bg-white border border-stone-200/70 shadow-xs flex items-center justify-between">
+            <div>
+              <p class="text-[11px] font-bold text-stone-400 uppercase">Último Inicio</p>
+              <p id="cycle-last-date-display" class="font-bold text-xs text-stone-700 mt-1">Registrando...</p>
+            </div>
+            <button onclick="openConfirmPeriodModal()" class="btn-tactile btn-tactile-rose px-3 py-1.5 text-xs gap-1 shadow-xs">
+              <span>🩸</span> Confirmar Menstruación
+            </button>
+          </div>
+        </div>
+
+        <!-- Consejos Personalizados de Self-Care por Fase -->
+        <div class="p-4 rounded-2xl bg-gradient-to-r from-rose-50/70 via-purple-50/40 to-pink-50/60 border border-rose-200/50 mt-4">
+          <div class="flex items-start gap-2.5">
+            <span class="text-xl mt-0.5">💡</span>
+            <div>
+              <h4 id="cycle-advice-title" class="font-serif font-bold text-sm text-stone-800">Momento de pausa y cariño</h4>
+              <p id="cycle-advice-text" class="text-xs text-stone-600 mt-1 leading-relaxed">
+                Tu cuerpo está renovándose. Bebe infusiones tibias, haz caminatas suaves y mímate con amor.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Calendario con Desplazamiento Horizontal Multi-Mes -->
+      <div class="card-clean p-4 md:p-5">
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <h3 class="font-serif font-bold text-base text-stone-800">Calendario de Fases y Transiciones</h3>
+            <p class="text-xs text-stone-400">Desliza horizontalmente para ver mes previo, actual y futuro</p>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <button onclick="scrollCycleCalendar(-1)" class="w-7 h-7 rounded-lg bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-xs font-bold">◀</button>
+            <button onclick="scrollCycleCalendar(1)" class="w-7 h-7 rounded-lg bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-xs font-bold">▶</button>
+          </div>
+        </div>
+
+        <!-- Leyenda de Fases -->
+        <div class="flex flex-wrap items-center gap-2 mb-3 text-[11px] font-bold text-stone-600 bg-stone-50 p-2.5 rounded-xl border border-stone-200">
+          <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-md bg-[#FDE8E8] border border-[#FEB2B2]"></span> Menstruación</span>
+          <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-md bg-[#E8F5E9] border border-[#9AE6B4]"></span> Folicular</span>
+          <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-md bg-[#FEF7E8] border border-[#FBD38D]"></span> Ovulación / Fértil</span>
+          <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-md bg-[#FFF0EB] border border-[#FBD38D]"></span> Lútea</span>
+        </div>
+
+        <!-- Contenedor Carrusel Horizontal Multi-Mes -->
+        <div id="cycle-multimonth-container" class="cycle-multimonth-wrapper">
+          <!-- Renderizado dinámico de los 3 meses -->
+        </div>
+      </div>
+
+      <!-- Configuración Desplegable de Parámetros del Ciclo (⚙️ Ajustar mi Ciclo) -->
+      <div class="card-clean p-4">
+        <details class="cursor-pointer group">
+          <summary class="flex items-center justify-between font-serif font-bold text-sm text-stone-800 list-none">
+            <span class="flex items-center gap-2">
+              <span>⚙️</span>
+              <span>Ajustar mi Ciclo (Duraciones Personalizadas)</span>
+            </span>
+            <span class="text-stone-400 group-open:rotate-180 transition-transform">▼</span>
+          </summary>
+          <div class="mt-4 pt-3 border-t border-stone-100 space-y-3 text-xs">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block font-bold text-stone-700 mb-1">Duración Total del Ciclo (Días):</label>
+                <input type="number" id="cycle-param-duration" value="28" min="20" max="45" class="w-full p-2.5 rounded-xl border border-stone-200 bg-stone-50" />
+                <span class="text-[10px] text-stone-400">Sugerido: 28 días (rango normal 21-40)</span>
+              </div>
+              <div>
+                <label class="block font-bold text-stone-700 mb-1">Duración Menstruación (Días):</label>
+                <input type="number" id="cycle-param-menstrual" value="5" min="2" max="10" class="w-full p-2.5 rounded-xl border border-stone-200 bg-stone-50" />
+                <span class="text-[10px] text-stone-400">Sugerido: 5 días</span>
+              </div>
+              <div>
+                <label class="block font-bold text-stone-700 mb-1">Duración Fase Folicular (Días):</label>
+                <input type="number" id="cycle-param-follicular" value="8" min="3" max="15" class="w-full p-2.5 rounded-xl border border-stone-200 bg-stone-50" />
+                <span class="text-[10px] text-stone-400">Sugerido: 8 días</span>
+              </div>
+              <div>
+                <label class="block font-bold text-stone-700 mb-1">Duración Ventana Ovulación (Días):</label>
+                <input type="number" id="cycle-param-ovulation" value="4" min="2" max="7" class="w-full p-2.5 rounded-xl border border-stone-200 bg-stone-50" />
+                <span class="text-[10px] text-stone-400">Sugerido: 4 días</span>
+              </div>
+              <div>
+                <label class="block font-bold text-stone-700 mb-1">Duración Fase Lútea (Días):</label>
+                <input type="number" id="cycle-param-luteal" value="11" min="7" max="16" class="w-full p-2.5 rounded-xl border border-stone-200 bg-stone-50" />
+                <span class="text-[10px] text-stone-400">Sugerido: 11 días</span>
+              </div>
+            </div>
+            <button onclick="saveCustomCycleParameters()" class="w-full btn-tactile btn-tactile-sage py-2.5 text-xs font-bold">
+              ✓ Aplicar Cambios y Recalcular Calendario
+            </button>
+          </div>
+        </details>
+      </div>
+
+      <!-- Registro Diario del Ciclo (Síntomas, Flujo y Fotos Desbloqueados) -->
+      <div class="card-clean p-5 md:p-6 space-y-4">
+        <div>
+          <h3 id="cycle-dynamic-header" class="font-serif font-bold text-base text-stone-800">
+            Registro Diario del Ciclo
+          </h3>
+          <p class="text-xs text-stone-400">Anota cómo te sientes físicamente hoy</p>
+        </div>
+
+        <!-- Nivel de Flujo Desbloqueado -->
+        <div>
+          <label class="block text-xs font-bold text-stone-600 mb-2">Nivel o Tipo de Flujo:</label>
+          <div id="cycle-flow-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <!-- Renderizado dinámico -->
+          </div>
+        </div>
+
+        <!-- Síntomas Multi-selección Reales -->
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <label class="block text-xs font-bold text-stone-600">Síntomas Físicos (Selección Múltiple):</label>
+            <span class="text-[10px] text-stone-400">Toca para activar/desactivar</span>
+          </div>
+          <div id="cycle-symptoms-container" class="flex flex-wrap gap-1.5">
+            <!-- Renderizado dinámico -->
+          </div>
+          <!-- Campo para Síntomas 'Otros' -->
+          <div id="cycle-other-symptom-box" class="mt-2 hidden">
+            <input type="text" id="cycle-other-symptom-input" placeholder="Detalla otros síntomas que sientes..." class="w-full text-xs p-2.5 rounded-xl border border-rose-200 bg-rose-50/40" />
+          </div>
+        </div>
+
+        <!-- Notas u Observaciones -->
+        <div>
+          <label class="block text-xs font-bold text-stone-600 mb-1">Notas u Observaciones del Día:</label>
+          <input type="text" id="cycle-notes-input" placeholder="Ej. Tomé té de manzanilla, descansé con cobijita..." class="w-full text-xs p-2.5 rounded-xl border border-stone-200 bg-stone-50 focus:bg-white" />
+        </div>
+
+        <!-- Foto Opcional del Ciclo -->
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="block text-xs font-bold text-stone-600">Foto o Recuerdo (Opcional):</label>
+            <span class="text-[10px] text-stone-400">Ej. Test de ovulación, notas</span>
+          </div>
+          <input type="file" id="cycle-photo-input" accept="image/*" onchange="handleCyclePhotoSelect(event)" class="hidden" />
+          <button type="button" onclick="document.getElementById('cycle-photo-input').click()" class="btn-tactile btn-tactile-white px-3 py-1.5 text-xs gap-1.5">
+            <span>📷</span>
+            <span>Adjuntar Foto</span>
+          </button>
+          <div id="cycle-photo-preview-container" class="mt-2 relative hidden inline-block">
+            <img id="cycle-photo-preview-img" src="" alt="Preview" class="w-24 h-24 object-cover rounded-xl border border-stone-200" />
+            <button onclick="removeSelectedCyclePhoto()" class="absolute -top-2 -right-2 bg-stone-800 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px]">✕</button>
+          </div>
+        </div>
+
+        <button onclick="saveCycleDailyLog()" class="w-full btn-tactile btn-tactile-rose py-2.5 text-xs md:text-sm shadow-xs">
+          ✓ Guardar Registro del Ciclo
+        </button>
+      </div>
+
+      <!-- Historial de Registros del Ciclo -->
+      <div class="card-clean p-5 space-y-3">
+        <h4 class="font-serif font-bold text-sm text-stone-800">Historial Reciente del Ciclo</h4>
+        <div id="cycle-history-container" class="space-y-2.5">
+          <!-- Renderizado dinámico -->
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ======================================================================= -->
+    <!-- PESTAÑA 4: DASHBOARD DUAL (BARRAS HORIZONTALES VS CALENDARIO COMPLETO) -->
+    <!-- ======================================================================= -->
+    <section id="tab-dashboard" class="view-section tab-content space-y-4">
+      
+      <!-- Conmutador de Vistas -->
+      <div class="card-clean p-4 md:p-5">
+        <div class="flex items-center justify-between gap-2 flex-wrap mb-3">
+          <div>
+            <h2 class="font-serif font-bold text-lg text-stone-800">Dashboard de Constancia</h2>
+            <p class="text-xs text-stone-400">Seguimiento mensual de tus metas y hábitos</p>
+          </div>
+
+          <div class="subtoggle-container">
+            <button id="swap-btn-bars" onclick="setDashboardViewMode('bars')" class="subtoggle-btn active">
+              📊 Vista Barras
+            </button>
+            <button id="swap-btn-calendar" onclick="setDashboardViewMode('calendar')" class="subtoggle-btn">
+              🗓️ Calendario Mes
+            </button>
+          </div>
+        </div>
+
+        <!-- Vista 1: Barras con Efecto Hueco -->
+        <div id="dash-bars-view">
+          <div class="flex items-center justify-between text-xs text-stone-500 mb-3">
+            <span id="dash-month-title" class="font-bold text-stone-700">Mes Actual</span>
+            <div class="flex items-center gap-3 text-[11px]">
+              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-emerald-400"></span> Hecho</span>
+              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm border border-dashed border-rose-300 bg-white"></span> Hueco</span>
+              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-sm bg-stone-200/50"></span> Libre</span>
+            </div>
+          </div>
+          <div id="segmented-month-bars-container">
+            <!-- Renderizado dinámico -->
+          </div>
+        </div>
+
+        <!-- Vista 2: Calendario Mensual Duolingo -->
+        <div id="dash-calendar-view" class="hidden">
+          <div class="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-stone-400 mb-2">
+            <div>DOM</div><div>LUN</div><div>MAR</div><div>MIÉ</div><div>JUE</div><div>VIE</div><div>SÁB</div>
+          </div>
+          <div id="monthly-calendar-grid" class="grid grid-cols-7 gap-1.5">
+            <!-- Renderizado dinámico -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Resumen Estadístico -->
+      <div class="card-clean p-5">
+        <h3 class="font-serif font-bold text-sm text-stone-800 mb-3">Resumen Histórico de Metas</h3>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+          <div class="p-3 rounded-2xl bg-amber-50/70 border border-amber-200/60">
+            <span class="text-xl">🔥</span>
+            <div id="stats-current-streak" class="font-extrabold text-xl text-amber-900 mt-0.5">0</div>
+            <div class="text-[10px] font-semibold text-amber-800">Racha Actual</div>
+          </div>
+          <div class="p-3 rounded-2xl bg-rose-50/70 border border-rose-200/60">
+            <span class="text-xl">🏆</span>
+            <div id="stats-max-streak" class="font-extrabold text-xl text-rose-900 mt-0.5">0</div>
+            <div class="text-[10px] font-semibold text-rose-800">Racha Récord</div>
+          </div>
+          <div class="p-3 rounded-2xl bg-emerald-50/70 border border-emerald-200/60">
+            <span class="text-xl">✓</span>
+            <div id="stats-total-habits-count" class="font-extrabold text-xl text-emerald-900 mt-0.5">0</div>
+            <div class="text-[10px] font-semibold text-emerald-800">Hábitos Listos</div>
+          </div>
+          <div class="p-3 rounded-2xl bg-purple-50/70 border border-purple-200/60">
+            <span class="text-xl">📖</span>
+            <div id="stats-total-journal-count" class="font-extrabold text-xl text-purple-900 mt-0.5">0</div>
+            <div class="text-[10px] font-semibold text-purple-800">Memorias</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Feed Histórico de Hábitos con Fotos y Comentarios -->
+      <div class="card-clean p-5 space-y-3">
+        <h4 class="font-serif font-bold text-sm text-stone-800">Observaciones y Fotos de Hábitos</h4>
+        <div id="habits-history-container" class="space-y-2.5">
+          <!-- Renderizado dinámico -->
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- ========================================================================= -->
+  <!-- 2. BARRA DE NAVEGACIÓN INFERIOR FIJA CON SCROLL HORIZONTAL -->
+  <!-- ========================================================================= -->
+  <nav class="bottom-floating-nav" aria-label="Navegación Principal">
+    <div class="bottom-nav-scroll-container">
+      <button type="button" onclick="switchTab('habits')" data-tab="habits" class="bottom-nav-btn active">
+        <span class="text-base">🌸</span>
+        <span>Hábitos</span>
+      </button>
+      <button type="button" onclick="switchTab('journal')" data-tab="journal" class="bottom-nav-btn">
+        <span class="text-base">📖</span>
+        <span>Diario</span>
+      </button>
+      <button type="button" onclick="switchTab('cycle')" data-tab="cycle" class="bottom-nav-btn">
+        <span class="text-base">🌙</span>
+        <span>Ciclo</span>
+      </button>
+      <button type="button" onclick="switchTab('dashboard')" data-tab="dashboard" class="bottom-nav-btn">
+        <span class="text-base">📊</span>
+        <span>Dashboard</span>
+      </button>
+      <button type="button" onclick="openSettingsModal()" class="bottom-nav-btn">
+        <span class="text-base">🛠️</span>
+        <span>Ayuda</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ========================================================================= -->
+  <!-- 3. POP-UP / MODAL LIGHTBOX ("ESTILO APP DE BODA") -->
+  <!-- ========================================================================= -->
+  <div id="lightbox-modal-overlay" class="lightbox-overlay" onclick="closeLightboxModal(event)">
+    <div class="lightbox-modal animate-pop" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between pb-3 border-b border-stone-100 mb-3">
+        <div class="flex items-center gap-2">
+          <span id="lightbox-icon" class="text-xl">🌸</span>
+          <h3 id="lightbox-title" class="font-serif font-bold text-lg text-stone-800">Detalle de la Memoria</h3>
+        </div>
+        <button onclick="closeLightboxModal()" class="text-stone-400 hover:text-stone-700 text-base font-bold p-1">✕</button>
+      </div>
+
+      <!-- Imagen en Tamaño Grande / Original -->
+      <div id="lightbox-photo-wrapper" class="mb-4 hidden text-center">
+        <img id="lightbox-img" src="" alt="Fotografía en grande" class="lightbox-img-full" onclick="toggleLightboxZoom(this)" />
+        <p class="text-[10px] text-stone-400 mt-1">Toca la foto para ampliar / reducir</p>
+      </div>
+
+      <!-- Metadatos de la Entrada -->
+      <div class="space-y-3">
+        <div class="flex items-center justify-between flex-wrap gap-2">
+          <div class="flex items-center gap-2">
+            <span id="lightbox-date" class="font-serif font-bold text-sm text-stone-700">Fecha</span>
+            <span id="lightbox-mood" class="text-lg" title="Estado de ánimo">🥰</span>
+          </div>
+          <div id="lightbox-pills" class="flex items-center gap-1.5 flex-wrap">
+            <!-- Píldoras Notion dinámicas -->
+          </div>
+        </div>
+
+        <div class="bg-stone-50/80 p-4 rounded-2xl border border-stone-200">
+          <p id="lightbox-text" class="text-xs md:text-sm text-stone-700 whitespace-pre-wrap leading-relaxed">
+            Texto completo de la memoria o comentario...
+          </p>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 pt-2">
+          <button id="lightbox-edit-btn" onclick="" class="btn-tactile btn-tactile-white px-3.5 py-2 text-xs gap-1.5">
+            <span>✏️</span>
+            <span>Editar este registro</span>
+          </button>
+          <button onclick="closeLightboxModal()" class="btn-tactile btn-tactile-rose px-4 py-2 text-xs">
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 4. MODAL: CONFIGURACIÓN & SINCRONIZACIÓN GOOGLE SHEETS/DRIVE -->
+  <!-- ========================================================================= -->
+  <div id="settings-modal" class="modal-overlay">
+    <div class="bg-white rounded-3xl p-6 max-w-md w-full border border-stone-200 shadow-2xl animate-pop max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between pb-3 border-b border-stone-100 mb-4">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">⚙️</span>
+          <h3 class="font-serif font-bold text-lg text-stone-800">Configuración & Sync</h3>
+        </div>
+        <button onclick="closeSettingsModal()" class="text-stone-400 hover:text-stone-700 text-sm font-bold">✕</button>
+      </div>
+
+      <div class="space-y-4 text-xs">
+        
+        <!-- Google Sheets URL -->
+        <div>
+          <label class="block font-bold text-stone-700 mb-1">URL de Google Apps Script (Web App):</label>
+          <input type="text"
+                 id="settings-sheets-url"
+                 placeholder="https://script.google.com/macros/s/.../exec"
+                 class="w-full text-xs font-mono p-2.5 rounded-xl border border-stone-200 bg-stone-50 focus:bg-white focus:outline-none" />
+          <p class="text-[10px] text-stone-400 mt-1">Conecta el script que actualiza el Google Sheet y Google Drive de tu esposa.</p>
+        </div>
+
+        <!-- Google Sheet ID -->
+        <div>
+          <label class="block font-bold text-stone-700 mb-1">ID de la Hoja de Google Sheets:</label>
+          <input type="text"
+                 id="settings-spreadsheet-id"
+                 value="1dAemKFvEufd0F5BcGEhP6YenrtmdCl49pIB9YA9zcTU"
+                 class="w-full text-xs font-mono p-2.5 rounded-xl border border-stone-200 bg-stone-50" />
+        </div>
+
+        <!-- Estado de Conexión -->
+        <div>
+          <label class="block font-bold text-stone-700 mb-1">Estado de Sincronización:</label>
+          <div id="sync-status-badge" class="p-2.5 rounded-xl bg-emerald-50 text-emerald-800 font-semibold text-[11px] flex items-center justify-between">
+            <span>🟢 LocalStorage Activo</span>
+            <span id="sync-time-lbl" class="text-[10px] text-emerald-600 font-normal">Sincronizado</span>
+          </div>
+        </div>
+
+        <div class="flex gap-2 pt-2">
+          <button onclick="saveAllSettings()" class="flex-1 btn-tactile btn-tactile-sage py-2.5 text-xs">
+            Guardar Cambios
+          </button>
+          <button id="btn-manual-sync" onclick="triggerManualSync()" class="btn-tactile btn-tactile-white px-3 py-2.5 text-xs">
+            Sincronizar Ahora 🔄
+          </button>
+        </div>
+
+        <!-- Botón Especial: Recargar Maquetado con Datos de Prueba -->
+        <div class="pt-2 border-t border-stone-100">
+          <button type="button" onclick="window.resetToMockData()" class="w-full btn-tactile btn-tactile-rose py-2.5 text-xs font-bold shadow-sm">
+            🌸 Restaurar Datos de Prueba Completos
+          </button>
+          <p class="text-[10px] text-stone-400 text-center mt-1">Recarga hábitos, diario, fotos, ciclo y métricas de prueba si deseas reiniciar.</p>
+        </div>
+
+        <!-- Diagnóstico Rápido -->
+        <div class="pt-3 border-t border-stone-100">
+          <details class="cursor-pointer">
+            <summary class="font-bold text-stone-700 text-xs">🩺 Diagnóstico & Ayuda</summary>
+            <div class="mt-2 space-y-2 text-[11px] text-stone-500 bg-stone-50 p-3 rounded-xl border border-stone-200">
+              <p>• <strong>Versión:</strong> VaneTracker v4.0 Full Production</p>
+              <p>• <strong>Hosting:</strong> GitHub Pages (100% Client-side & Offline-First)</p>
+              <p>• <strong>Google Drive:</strong> Las fotos se guardan en la carpeta <code>VaneTracker_Fotos</code>.</p>
+              <p>• <strong>Sonido:</strong> Web Audio API sintetizada (activa con 🔊 en el header).</p>
+            </div>
+          </details>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 5. MODAL: NUEVO / EDITAR HÁBITO -->
+  <!-- ========================================================================= -->
+  <div id="new-habit-modal" class="modal-overlay">
+    <div class="bg-white rounded-3xl p-5 md:p-6 max-w-md w-full border border-stone-200 shadow-2xl animate-pop max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between pb-3 border-b border-stone-100 mb-3">
+        <h3 id="habit-modal-title" class="font-serif font-bold text-lg text-stone-800">Nuevo Hábito</h3>
+        <button onclick="closeNewHabitModal()" class="text-stone-400 hover:text-stone-700 text-sm font-bold">✕</button>
+      </div>
+
+      <div class="space-y-3.5 text-xs">
+        <input type="hidden" id="editing-habit-id" value="" />
+
+        <div>
+          <label class="block font-bold text-stone-700 mb-1">Nombre del Hábito:</label>
+          <input type="text" id="new-habit-name" placeholder="Ej. Pasear a Matilda, Limpieza de mesas..." class="w-full text-xs p-2.5 rounded-xl border border-stone-200 bg-stone-50 focus:bg-white" />
+        </div>
+
+        <div>
+          <label class="block font-bold text-stone-700 mb-1">📁 Carpeta Global:</label>
+          <select id="new-habit-folder-select" class="w-full text-xs p-2.5 rounded-xl border border-stone-200 bg-stone-50"></select>
+        </div>
+
+        <div>
+          <label class="block font-bold text-stone-700 mb-1">📅 Días Programados:</label>
+          <div class="grid grid-cols-7 gap-1 text-center font-bold text-[11px]">
+            <label class="cursor-pointer p-1.5 rounded-lg border border-stone-200 has-[:checked]:bg-emerald-100 has-[:checked]:border-emerald-400">
+              <input type="checkbox" value="L" class="habit-day-checkbox sr-only" checked /> L
+            </label>
+            <label class="cursor-pointer p-1.5 rounded-lg border border-stone-200 has-[:checked]:bg-emerald-100 has-[:checked]:border-emerald-400">
+              <input type="checkbox" value="M" class="habit-day-checkbox sr-only" checked /> M
+            </label>
+            <label class="cursor-pointer p-1.5 rounded-lg border border-stone-200 has-[:checked]:bg-emerald-100 has-[:checked]:border-emerald-400">
+              <input type="checkbox" value="X" class="habit-day-checkbox sr-only" checked /> X
+            </label>
+            <label class="cursor-pointer p-1.5 rounded-lg border border-stone-200 has-[:checked]:bg-emerald-100 has-[:checked]:border-emerald-400">
+              <input type="checkbox" value="J" class="habit-day-checkbox sr-only" checked /> J
+            </label>
+            <label class="cursor-pointer p-1.5 rounded-lg border border-stone-200 has-[:checked]:bg-emerald-100 has-[:checked]:border-emerald-400">
+              <input type="checkbox" value="V" class="habit-day-checkbox sr-only" checked /> V
+            </label>
+            <label class="cursor-pointer p-1.5 rounded-lg border border-stone-200 has-[:checked]:bg-emerald-100 has-[:checked]:border-emerald-400">
+              <input type="checkbox" value="S" class="habit-day-checkbox sr-only" checked /> S
+            </label>
+            <label class="cursor-pointer p-1.5 rounded-lg border border-stone-200 has-[:checked]:bg-emerald-100 has-[:checked]:border-emerald-400">
+              <input type="checkbox" value="D" class="habit-day-checkbox sr-only" checked /> D
+            </label>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-stone-700 mb-1">🔢 Meta Diaria (Veces al día):</label>
+          <input type="number" id="new-habit-times" value="1" min="1" max="15" class="w-24 text-xs p-2 rounded-xl border border-stone-200 bg-stone-50" />
+        </div>
+
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="font-bold text-stone-700">Ícono Seleccionado:</label>
+            <input type="text" id="new-habit-emoji" value="🌸" class="w-12 text-center text-lg p-1 rounded-xl border border-stone-200 bg-stone-50" />
+          </div>
+
+          <div class="flex flex-wrap gap-1 mb-2">
+            <button type="button" onclick="setEmojiCategory('hogar')" data-cat="hogar" class="emoji-tab-btn active">🏠 Hogar</button>
+            <button type="button" onclick="setEmojiCategory('matilda')" data-cat="matilda" class="emoji-tab-btn">🐶 Matilda</button>
+            <button type="button" onclick="setEmojiCategory('salud')" data-cat="salud" class="emoji-tab-btn">🌸 Salud</button>
+            <button type="button" onclick="setEmojiCategory('deporte')" data-cat="deporte" class="emoji-tab-btn">🏃‍♀️ Deporte</button>
+            <button type="button" onclick="setEmojiCategory('comida')" data-cat="comida" class="emoji-tab-btn">🥗 Comida</button>
+            <button type="button" onclick="setEmojiCategory('estudio')" data-cat="estudio" class="emoji-tab-btn">📚 Estudio</button>
+            <button type="button" onclick="setEmojiCategory('aesthetic')" data-cat="aesthetic" class="emoji-tab-btn">✨ Cuchis</button>
+          </div>
+
+          <div id="emoji-picker-grid" class="flex flex-wrap gap-1 p-2 bg-stone-50 rounded-xl border border-stone-200 max-h-24 overflow-y-auto"></div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-stone-700 mb-1">Color Pastel:</label>
+          <select id="new-habit-color" class="w-full text-xs p-2 rounded-xl border border-stone-200 bg-stone-50">
+            <option value="#88A28E">Verde Salvia</option>
+            <option value="#D9969D">Rosa Empolvado</option>
+            <option value="#9C8EC9">Lavanda Pastel</option>
+            <option value="#E8927C">Melocotón / Coral</option>
+            <option value="#E5A93C">Dorado Suave</option>
+            <option value="#7BAFD4">Azul Cielo</option>
+          </select>
+        </div>
+
+        <div class="flex gap-2 pt-2">
+          <button onclick="saveNewHabit()" class="flex-1 btn-tactile btn-tactile-sage py-3 text-xs md:text-sm">
+            ✓ Guardar Hábito
+          </button>
+          <button id="btn-delete-habit" onclick="deleteCurrentEditingHabit()" class="hidden btn-tactile btn-tactile-danger px-3 py-3 text-xs">
+            🗑️ Eliminar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 6. MODAL: NUEVA / EDITAR CARPETA -->
+  <!-- ========================================================================= -->
+  <div id="new-folder-modal" class="modal-overlay">
+    <div class="bg-white rounded-3xl p-6 max-w-sm w-full border border-stone-200 shadow-2xl animate-pop">
+      <div class="flex items-center justify-between pb-3 border-b border-stone-100 mb-3">
+        <h3 id="folder-modal-title" class="font-serif font-bold text-lg text-stone-800">Nueva Carpeta Global</h3>
+        <button onclick="closeNewFolderModal()" class="text-stone-400 hover:text-stone-700 text-sm font-bold">✕</button>
+      </div>
+
+      <div class="space-y-3.5 text-xs">
+        <input type="hidden" id="editing-folder-id" value="" />
+
+        <div>
+          <label class="block font-bold text-stone-700 mb-1">Nombre de la Carpeta:</label>
+          <input type="text" id="new-folder-name" placeholder="Ej. Limpieza, Matilda..." class="w-full text-xs p-2.5 rounded-xl border border-stone-200 bg-stone-50 focus:bg-white" />
+        </div>
+        <div>
+          <label class="block font-bold text-stone-700 mb-1">Ícono:</label>
+          <input type="text" id="new-folder-icon" value="📁" class="w-16 text-center text-lg p-1.5 rounded-xl border border-stone-200 bg-stone-50" />
+        </div>
+        <div>
+          <label class="block font-bold text-stone-700 mb-1">Color Pastel:</label>
+          <select id="new-folder-color" class="w-full text-xs p-2 rounded-xl border border-stone-200 bg-stone-50">
+            <option value="#88A28E">Verde Salvia</option>
+            <option value="#D9969D">Rosa Empolvado</option>
+            <option value="#E5A93C">Dorado Suave</option>
+            <option value="#7BAFD4">Azul Cielo</option>
+            <option value="#9C8EC9">Lavanda</option>
+          </select>
+        </div>
+
+        <div class="flex gap-2 pt-2">
+          <button onclick="saveNewFolder()" class="flex-1 btn-tactile btn-tactile-sage py-2.5 text-xs">
+            ✓ Guardar Carpeta
+          </button>
+          <button id="btn-delete-folder" onclick="deleteCurrentEditingFolder()" class="hidden btn-tactile btn-tactile-danger px-3 py-2.5 text-xs">
+            🗑️ Eliminar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 7. MODAL: NOTA Y FOTO DE HÁBITO DEL DÍA -->
+  <!-- ========================================================================= -->
+  <div id="habit-note-modal" class="modal-overlay">
+    <div class="bg-white rounded-3xl p-5 md:p-6 max-w-sm w-full border border-stone-200 shadow-2xl animate-pop">
+      <div class="flex items-center justify-between pb-3 border-b border-stone-100 mb-3">
+        <div>
+          <h3 id="habit-note-modal-habit-name" class="font-serif font-bold text-base text-stone-800">Nota del Hábito</h3>
+          <p id="habit-note-modal-date" class="text-[10px] text-stone-400">Fecha</p>
+        </div>
+        <button onclick="closeHabitNoteModal()" class="text-stone-400 hover:text-stone-700 text-sm font-bold">✕</button>
+      </div>
+
+      <div class="space-y-3.5 text-xs">
+        <input type="hidden" id="habit-note-modal-target-habit" value="" />
+        
+        <div>
+          <label class="block font-bold text-stone-700 mb-1">Comentario u Observación de Hoy:</label>
+          <textarea id="habit-note-modal-text" rows="3" placeholder="Ej. Matilda corrió muy feliz en el parque..." class="w-full text-xs p-2.5 rounded-xl border border-stone-200 bg-stone-50"></textarea>
+        </div>
+
+        <div>
+          <label class="block font-bold text-stone-700 mb-1">Foto del Hábito:</label>
+          <input type="file" id="habit-modal-photo-input" accept="image/*" onchange="handleHabitModalPhotoSelect(event)" class="hidden" />
+          <button type="button" onclick="document.getElementById('habit-modal-photo-input').click()" class="btn-tactile btn-tactile-white px-3 py-1.5 text-xs gap-1.5">
+            <span>📷</span>
+            <span>Adjuntar Foto</span>
+          </button>
+
+          <div id="habit-modal-photo-preview-wrap" class="mt-2 relative hidden inline-block">
+            <img id="habit-modal-photo-preview" src="" alt="Preview" class="w-24 h-24 object-cover rounded-xl border border-stone-200" />
+            <button onclick="removeHabitModalPhoto()" class="absolute -top-2 -right-2 bg-stone-800 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px]">✕</button>
+          </div>
+        </div>
+
+        <button onclick="saveHabitNoteAndPhoto()" class="w-full btn-tactile btn-tactile-sage py-2.5 text-xs font-bold">
+          ✓ Guardar Observación
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 8. MODAL: CONFIRMAR MENSTRUACIÓN -->
+  <!-- ========================================================================= -->
+  <div id="confirm-period-modal" class="modal-overlay">
+    <div class="bg-white rounded-3xl p-6 max-w-sm w-full border border-stone-200 shadow-2xl animate-pop">
+      <div class="flex items-center justify-between pb-3 border-b border-stone-100 mb-3">
+        <h3 class="font-serif font-bold text-base text-stone-800">🩸 Confirmar Menstruación</h3>
+        <button onclick="closeConfirmPeriodModal()" class="text-stone-400 hover:text-stone-700 text-sm font-bold">✕</button>
+      </div>
+
+      <div class="space-y-3.5 text-xs">
+        <p class="text-stone-600 leading-relaxed">
+          Al confirmar, el sistema recalculará automáticamente todas tus fases futuras y el calendario de proyección.
+        </p>
+
+        <div>
+          <label class="block font-bold text-stone-700 mb-1">¿Qué día inició tu período?</label>
+          <input type="date" id="confirm-period-date-input" class="w-full text-xs p-2.5 rounded-xl border border-stone-200 bg-stone-50" />
+        </div>
+
+        <div class="flex gap-2 pt-1">
+          <button onclick="confirmPeriodStartWithDate()" class="flex-1 btn-tactile btn-tactile-rose py-2.5 text-xs font-bold">
+            ✓ Confirmar y Recalcular
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Script de Producción Seguro (Ruta Relativa para GitHub Pages) -->
+  <script src="./app-SEGURO.js"></script>
+</body>
+</html>
