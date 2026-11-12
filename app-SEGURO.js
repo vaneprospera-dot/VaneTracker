@@ -1,9 +1,9 @@
 /**
  * ==============================================================================
- * ARCHIVO SEGURO PARA SUBIR A GITHUB - VANETRACKER (V4.0 FULL PRODUCTION)
+ * ARCHIVO SEGURO PARA SUBIR A GITHUB - VANETRACKER (V5.0 AUTO-DISCOVERY & CARPETAS)
  * ARCHIVO: app-SEGURO.js
  * DESCRIPCIÓN: Lógica 100% Funcional, Persistente (LocalStorage + Google Sheets & Drive)
- * AUTOR: Arquitecto Full-Stack & UI/UX Designer
+ * AUTOR: Arquitecto Full-Stack Senior
  * ==============================================================================
  */
 
@@ -11,7 +11,7 @@
   "use strict";
 
   console.time("App_Init_Timer");
-  console.log("🌸 Iniciando VaneTracker v4.0 Full Production Release");
+  console.log("🌸 Iniciando VaneTracker v5.0 Auto-Descubrimiento Multi-Dispositivo & Administrador de Carpetas");
 
   // ============================================================================
   // BANCO DE FRASES ROTATIVAS Y MOTIVACIONALES PARA VANE
@@ -271,19 +271,18 @@
       console.error("Error en renderAll durante initApp:", e);
     }
 
-    // Comprobación de Sincronización en Segundo Plano
-    if (state.googleSheetsUrl) {
-      setTimeout(() => {
-        try { backgroundCheckSync(); } catch (e) {}
-      }, 1200);
+    // Auto-descubrimiento multi-dispositivo y sincronización automática
+    try {
+      bootstrapAutoSync();
+    } catch (e) {
+      console.warn("Error ejecutando bootstrapAutoSync:", e);
     }
 
     console.timeEnd("App_Init_Timer");
   }
 
   function seedProductionData(force = false) {
-    const currentMockVer = localStorage.getItem("vanetracker_version");
-    if (!force && currentMockVer === "4.0.0" && state.folders && state.folders.length > 0) {
+    if (!force && state.folders && state.folders.length > 0 && state.habitsCatalog && state.habitsCatalog.length > 0) {
       return;
     }
 
@@ -1213,8 +1212,11 @@
     }
 
     saveToLocalStorage();
-    renderHabitsModule();
     window.closeNewFolderModal();
+    renderHabitsModule();
+    if (typeof renderFolderManagerList === "function") {
+      renderFolderManagerList();
+    }
     playSuccessSound();
   };
 
@@ -1340,6 +1342,12 @@
       return;
     }
 
+    const assignedFolder = (folderSelect?.value || (state.folders[0] ? state.folders[0].Nombre : "")).trim();
+    if (!assignedFolder) {
+      alert("Por favor selecciona una carpeta para el hábito.");
+      return;
+    }
+
     const checkedDays = [];
     document.querySelectorAll(".habit-day-checkbox:checked").forEach(cb => checkedDays.push(cb.value));
     const diasProg = checkedDays.length === 7 || checkedDays.length === 0 ? "todos" : checkedDays.join(",");
@@ -1351,7 +1359,7 @@
         habit.Nombre = name;
         habit.Icono = (emojiInput?.value || "✨").trim();
         habit.Color_Pastel = colorInput?.value || "#88A28E";
-        habit.Carpeta_Global = folderSelect?.value || "Salud & Bienestar";
+        habit.Carpeta_Global = assignedFolder;
         habit.Dias_Programados = diasProg;
         habit.Meta_Diaria_Veces = parseInt(timesInput?.value) || 1;
         sendAsyncLogToBackend("save_habit_definition", { habit: habit });
@@ -1363,18 +1371,30 @@
         Nombre: name,
         Icono: (emojiInput?.value || "✨").trim(),
         Color_Pastel: colorInput?.value || "#88A28E",
-        Carpeta_Global: folderSelect?.value || "Salud & Bienestar",
+        Carpeta_Global: assignedFolder,
         Dias_Programados: diasProg,
         Meta_Diaria_Veces: parseInt(timesInput?.value) || 1,
         Activo: true
       };
       state.habitsCatalog.push(newHabit);
+
+      // Expandir la carpeta destino para visibilidad inmediata
+      const fObj = state.folders.find(f => f.Nombre === assignedFolder);
+      if (fObj) {
+        state.collapsedFolders[fObj.ID_Carpeta] = false;
+      }
+
       sendAsyncLogToBackend("save_habit_definition", { habit: newHabit });
     }
 
+    // Persistencia y render optimista instantáneo (<100ms)
     saveToLocalStorage();
-    renderHabitsModule();
     window.closeNewHabitModal();
+    renderHabitsModule();
+    renderDashboardModule();
+    if (typeof renderFolderManagerList === "function") {
+      renderFolderManagerList();
+    }
     playSuccessSound();
   };
 
@@ -1575,14 +1595,13 @@
 
     saveToLocalStorage();
 
-    // Resetear formulario
+    // Resetear formulario y renderizar optimistamente en feed
     if (noteInput) noteInput.value = "";
     window.removeSelectedJournalPhoto();
+    window.switchJournalSubtab("feed");
     renderJournalFeed();
     playSuccessSound();
     triggerCuteConfetti();
-    alert("✨ ¡Memoria guardada con amor en tu diario!");
-    window.switchJournalSubtab("feed");
   };
 
   window.editJournalEntry = function (entryId) {
@@ -2491,7 +2510,7 @@
   };
 
   // ============================================================================
-  // 7. SINCRONIZACIÓN GOOGLE SHEETS & GOOGLE DRIVE
+  // 7. SINCRONIZACIÓN GOOGLE SHEETS & GOOGLE DRIVE (V5.0 AUTO-SYNC)
   // ============================================================================
   function sendAsyncLogToBackend(action, payload) {
     if (!state.googleSheetsUrl) return;
@@ -2499,12 +2518,109 @@
       const bodyData = Object.assign({ action: action }, payload);
       fetch(state.googleSheetsUrl, {
         method: "POST",
-        mode: "no-cors",
-        headers: { "Content-Type": "application/json" },
+        redirect: "follow",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
         body: JSON.stringify(bodyData)
-      }).catch(() => {});
-    } catch (e) {}
+      }).catch(err => {
+        console.warn("Sincronización background advertencia:", err);
+      });
+    } catch (e) {
+      console.warn("Excepción al enviar a backend:", e);
+    }
   }
+
+  async function pullAllDataFromSheets() {
+    if (!state.googleSheetsUrl) return false;
+    try {
+      const resp = await fetch(`${state.googleSheetsUrl}?action=all`);
+      if (!resp.ok) return false;
+      const data = await resp.json();
+      if (data && data.status === "success") {
+        const folders = data.folders || data.carpetas;
+        if (Array.isArray(folders) && folders.length > 0) state.folders = folders;
+
+        const habits = data.habits || data.habitos_config;
+        if (Array.isArray(habits) && habits.length > 0) state.habitsCatalog = habits;
+
+        const rawLogs = data.habitsLog || data.habitos_log;
+        if (Array.isArray(rawLogs) && rawLogs.length > 0) {
+          rawLogs.forEach(r => {
+            let f = r.Fecha_Habito;
+            if (f && f.length > 10) f = f.substring(0, 10);
+            if (!f || !r.Nombre_Habito) return;
+            if (!state.habitsLog[f]) state.habitsLog[f] = {};
+            state.habitsLog[f][r.Nombre_Habito] = r;
+          });
+        }
+
+        const diary = data.diary || data.diario_log;
+        if (Array.isArray(diary) && diary.length > 0) state.journalEntries = diary;
+
+        const cycleConf = data.cycleConfig || data.ciclo_config;
+        if (Array.isArray(cycleConf) && cycleConf[0]) {
+          state.cycleSettings = Object.assign(state.cycleSettings, cycleConf[0]);
+        }
+
+        const cycleLogs = data.cycleLog || data.ciclo_log;
+        if (Array.isArray(cycleLogs) && cycleLogs.length > 0) state.cycleLogs = cycleLogs;
+
+        saveToLocalStorage();
+        renderAll();
+        return true;
+      }
+    } catch (err) {
+      console.warn("Error en pullAllDataFromSheets:", err);
+    }
+    return false;
+  }
+  window.pullAllDataFromSheets = pullAllDataFromSheets;
+
+  async function bootstrapAutoSync() {
+    const sheetId = state.spreadsheetId || "1dAemKFvEufd0F5BcGEhP6YenrtmdCl49pIB9YA9zcTU";
+    const gvizUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=Config_Sistema`;
+
+    try {
+      const resp = await fetch(gvizUrl);
+      if (resp.ok) {
+        const text = await resp.text();
+        const jsonText = text.substring(47).slice(0, -2);
+        const json = JSON.parse(jsonText);
+        let discoveredUrl = "";
+        if (json && json.table && Array.isArray(json.table.rows)) {
+          for (const row of json.table.rows) {
+            if (row && row.c && row.c[0] && String(row.c[0].v).trim() === "APPS_SCRIPT_URL") {
+              if (row.c[1] && row.c[1].v) {
+                discoveredUrl = String(row.c[1].v).trim();
+                break;
+              }
+            }
+          }
+        }
+
+        if (discoveredUrl) {
+          console.log("🔗 URL de Apps Script auto-descubierto:", discoveredUrl);
+          state.googleSheetsUrl = discoveredUrl;
+          localStorage.setItem("vanetracker_sheets_url", discoveredUrl);
+          const urlInput = document.getElementById("settings-sheets-url");
+          if (urlInput) urlInput.value = discoveredUrl;
+          const badge = document.getElementById("sync-status-badge");
+          if (badge) {
+            badge.innerHTML = `<span>🟢 Conectado a Google Sheets</span><span class="text-[10px] text-emerald-700">En vivo</span>`;
+          }
+          await pullAllDataFromSheets();
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn("Auto-descubrimiento GViz no disponible o sin conexión:", e);
+    }
+
+    if (state.googleSheetsUrl) {
+      backgroundCheckSync();
+      await pullAllDataFromSheets();
+    }
+  }
+  window.bootstrapAutoSync = bootstrapAutoSync;
 
   window.triggerManualSync = async function () {
     if (state.isSyncing) return;
@@ -2513,23 +2629,9 @@
     if (btn) btn.textContent = "Sincronizando... ⏳";
 
     try {
-      // 1. Descarga bidireccional desde Google Sheets si hay URL
       if (state.googleSheetsUrl) {
-        try {
-          const resp = await fetch(`${state.googleSheetsUrl}?action=all`);
-          if (resp.ok) {
-            const data = await resp.json();
-            if (data.status === "success") {
-              if (Array.isArray(data.carpetas) && data.carpetas.length > 0) state.folders = data.carpetas;
-              if (Array.isArray(data.habitos_config) && data.habitos_config.length > 0) state.habitsCatalog = data.habitos_config;
-              if (Array.isArray(data.diario_log)) state.journalEntries = data.diario_log;
-              if (Array.isArray(data.ciclo_log)) state.cycleLogs = data.ciclo_log;
-              if (Array.isArray(data.ciclo_config) && data.ciclo_config[0]) {
-                state.cycleSettings = Object.assign(state.cycleSettings, data.ciclo_config[0]);
-              }
-            }
-          }
-        } catch (fetchErr) {}
+        // 1. Descarga bidireccional desde Google Sheets
+        await pullAllDataFromSheets();
 
         // 2. Envío de lote masivo de hábitos locales
         const batchRecords = [];
@@ -2541,11 +2643,13 @@
           try {
             await fetch(state.googleSheetsUrl, {
               method: "POST",
-              mode: "no-cors",
-              headers: { "Content-Type": "application/json" },
+              redirect: "follow",
+              headers: { "Content-Type": "text/plain;charset=utf-8" },
               body: JSON.stringify({ action: "save_habits_batch", records: batchRecords })
             });
-          } catch (postErr) {}
+          } catch (postErr) {
+            console.warn("Error enviando batch de hábitos:", postErr);
+          }
         }
 
         saveToLocalStorage();
@@ -2597,22 +2701,339 @@
     if (modal) modal.classList.remove("open");
   };
 
-  window.saveAllSettings = function () {
+  window.saveAllSettings = async function () {
     const urlInput = document.getElementById("settings-sheets-url");
     const idInput = document.getElementById("settings-spreadsheet-id");
 
-    if (urlInput) state.googleSheetsUrl = urlInput.value.trim();
+    const newUrl = urlInput ? urlInput.value.trim() : "";
+    if (urlInput) state.googleSheetsUrl = newUrl;
     if (idInput) state.spreadsheetId = idInput.value.trim();
 
     saveToLocalStorage();
     window.closeSettingsModal();
     playSuccessSound();
-    alert("✅ Configuración guardada correctamente.");
 
     if (state.googleSheetsUrl) {
+      const badge = document.getElementById("sync-status-badge");
+      if (badge) {
+        badge.innerHTML = `<span>🟢 Guardando en Google Sheets...</span>`;
+      }
+      try {
+        await fetch(state.googleSheetsUrl, {
+          method: "POST",
+          redirect: "follow",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({ action: "saveSystemConfig", scriptUrl: state.googleSheetsUrl })
+        });
+        if (badge) {
+          badge.innerHTML = `<span>🟢 Conectado a Google Sheets</span><span class="text-[10px] text-emerald-700">En vivo</span>`;
+        }
+      } catch (err) {
+        console.warn("Error guardando scriptUrl en Config_Sistema:", err);
+      }
       backgroundCheckSync();
     }
+    alert("✅ Configuración guardada y sincronizada con Google Sheets.");
   };
+
+  // ============================================================================
+  // ADMINISTRADOR INTEGRAL DE CARPETAS Y HÁBITOS (V5.0)
+  // ============================================================================
+  state.folderManagerExpanded = {};
+
+  function calculateHabitMonthlyStats(habit) {
+    const refDate = parseDateKey(state.selectedDate || getTodayString());
+    const year = refDate.getFullYear();
+    const month = refDate.getMonth();
+    const today = new Date();
+
+    let endDay;
+    if (year === today.getFullYear() && month === today.getMonth()) {
+      endDay = today.getDate();
+    } else {
+      endDay = new Date(year, month + 1, 0).getDate();
+    }
+
+    let expected = 0;
+    let completed = 0;
+    const targetPerDay = habit.Meta_Diaria_Veces || 1;
+
+    for (let day = 1; day <= endDay; day++) {
+      const dObj = new Date(year, month, day);
+      const dStr = formatDateKey(dObj);
+      if (isHabitScheduledForDate(habit, dStr)) {
+        expected += targetPerDay;
+        const log = state.habitsLog[dStr]?.[habit.Nombre];
+        if (log) {
+          const c = log.Veces_Completadas_Hoy !== undefined
+            ? log.Veces_Completadas_Hoy
+            : (log.Estado === "Completado" ? targetPerDay : 0);
+          completed += Math.min(c, targetPerDay);
+        }
+      }
+    }
+
+    const percent = expected > 0 ? Math.round((completed / expected) * 100) : 0;
+    return { expected, completed, percent };
+  }
+  window.calculateHabitMonthlyStats = calculateHabitMonthlyStats;
+
+  function calculateFolderMonthlyStats(folderName) {
+    const habits = state.habitsCatalog.filter(h => h.Carpeta_Global === folderName && h.Activo);
+    let totalExpected = 0;
+    let totalCompleted = 0;
+
+    habits.forEach(h => {
+      const stats = calculateHabitMonthlyStats(h);
+      totalExpected += stats.expected;
+      totalCompleted += stats.completed;
+    });
+
+    const percent = totalExpected > 0 ? Math.round((totalCompleted / totalExpected) * 100) : 0;
+    return { expected: totalExpected, completed: totalCompleted, percent, count: habits.length };
+  }
+  window.calculateFolderMonthlyStats = calculateFolderMonthlyStats;
+
+  window.openFolderManagerModal = function () {
+    renderFolderManagerList();
+    const modal = document.getElementById("folder-manager-modal");
+    if (modal) modal.classList.add("open");
+  };
+
+  window.closeFolderManagerModal = function () {
+    const modal = document.getElementById("folder-manager-modal");
+    if (modal) modal.classList.remove("open");
+  };
+
+  window.toggleFolderManagerAccordion = function (folderId) {
+    state.folderManagerExpanded[folderId] = !state.folderManagerExpanded[folderId];
+    renderFolderManagerList();
+  };
+
+  window.assignFolderToHabit = function (habitId, folderName) {
+    if (!folderName) return;
+    const habit = state.habitsCatalog.find(h => h.ID_Habito === habitId);
+    if (habit) {
+      habit.Carpeta_Global = folderName;
+      saveToLocalStorage();
+      renderHabitsModule();
+      renderFolderManagerList();
+      sendAsyncLogToBackend("save_habit_definition", { habit: habit });
+      playGentleBlip();
+    }
+  };
+
+  window.deleteFolderDirect = function (folderId) {
+    const folder = state.folders.find(f => f.ID_Carpeta === folderId);
+    if (!folder) return;
+
+    const count = state.habitsCatalog.filter(h => h.Carpeta_Global === folder.Nombre).length;
+    const msg = count > 0
+      ? `¿Segura que deseas eliminar la carpeta "${folder.Nombre}"? Sus ${count} hábito(s) pasarán a la primera carpeta disponible.`
+      : `¿Segura que deseas eliminar la carpeta "${folder.Nombre}"?`;
+
+    if (confirm(msg)) {
+      const idx = state.folders.findIndex(f => f.ID_Carpeta === folderId);
+      if (idx !== -1) {
+        state.folders.splice(idx, 1);
+        const fallbackName = state.folders[0] ? state.folders[0].Nombre : "General";
+        state.habitsCatalog.forEach(h => {
+          if (h.Carpeta_Global === folder.Nombre) h.Carpeta_Global = fallbackName;
+        });
+        sendAsyncLogToBackend("delete_folder", { id: folderId, nombre: folder.Nombre });
+        saveToLocalStorage();
+        renderHabitsModule();
+        renderFolderManagerList();
+        playGentleBlip();
+      }
+    }
+  };
+
+  window.deleteHabitDirect = function (habitId) {
+    const habit = state.habitsCatalog.find(h => h.ID_Habito === habitId);
+    if (!habit) return;
+
+    if (confirm(`¿Estás segura de eliminar el hábito "${habit.Nombre}"?`)) {
+      const idx = state.habitsCatalog.findIndex(h => h.ID_Habito === habitId);
+      if (idx !== -1) {
+        state.habitsCatalog.splice(idx, 1);
+        sendAsyncLogToBackend("delete_habit_definition", { id: habitId, nombre: habit.Nombre });
+        saveToLocalStorage();
+        renderHabitsModule();
+        renderFolderManagerList();
+        playGentleBlip();
+      }
+    }
+  };
+
+  function renderFolderManagerList() {
+    const container = document.getElementById("folder-manager-cards-container");
+    const orphansCont = document.getElementById("folder-manager-orphans-container");
+    if (!container) return;
+
+    // 1. Detectar hábitos huérfanos
+    const validFolderNames = new Set(state.folders.map(f => f.Nombre));
+    const orphanHabits = state.habitsCatalog.filter(h => !h.Carpeta_Global || !validFolderNames.has(h.Carpeta_Global));
+
+    if (orphansCont) {
+      if (orphanHabits.length > 0) {
+        let orpHtml = `
+          <div class="orphan-warning-box text-stone-800 space-y-2">
+            <div class="flex items-center gap-2 font-bold text-amber-800 text-xs">
+              <span>⚠️</span>
+              <span>Hábitos sin carpeta asignada (${orphanHabits.length})</span>
+            </div>
+            <p class="text-[11px] text-amber-700">Por favor asígnales una carpeta para mantener tu panel ordenado:</p>
+            <div class="space-y-1.5 pt-1">
+        `;
+        orphanHabits.forEach(h => {
+          orpHtml += `
+            <div class="flex items-center justify-between gap-2 bg-white/90 p-2 rounded-xl border border-amber-200">
+              <span class="font-medium text-xs">${h.Icono || '✨'} ${escapeHtml(h.Nombre)}</span>
+              <select onchange="window.assignFolderToHabit('${h.ID_Habito}', this.value)" class="text-xs p-1 rounded-lg border border-stone-200 bg-stone-50">
+                <option value="">-- Asignar Carpeta --</option>
+                ${state.folders.map(f => `<option value="${escapeAttr(f.Nombre)}">${f.Icono} ${escapeHtml(f.Nombre)}</option>`).join("")}
+              </select>
+            </div>
+          `;
+        });
+        orpHtml += `</div></div>`;
+        orphansCont.innerHTML = orpHtml;
+        orphansCont.classList.remove("hidden");
+      } else {
+        orphansCont.innerHTML = "";
+        orphansCont.classList.add("hidden");
+      }
+    }
+
+    // 2. Renderizar carpetas y sus mini-dashboards
+    if (state.folders.length === 0) {
+      container.innerHTML = `
+        <div class="p-6 text-center text-stone-400 text-xs bg-stone-50 rounded-2xl border border-dashed border-stone-200">
+          No tienes carpetas creadas. Toca <strong>➕ Nueva Carpeta</strong> arriba para comenzar.
+        </div>
+      `;
+      return;
+    }
+
+    let html = "";
+    state.folders.forEach(folder => {
+      const stats = calculateFolderMonthlyStats(folder.Nombre);
+      const isExpanded = Boolean(state.folderManagerExpanded[folder.ID_Carpeta]);
+      const folderHabits = state.habitsCatalog.filter(h => h.Carpeta_Global === folder.Nombre && h.Activo);
+
+      html += `
+        <div class="folder-manager-card shadow-xs">
+          <!-- Cabecera de la carpeta en el Administrador -->
+          <div class="cursor-pointer" onclick="window.toggleFolderManagerAccordion('${folder.ID_Carpeta}')">
+            <div class="flex items-start justify-between gap-2 mb-2">
+              <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-2xl flex items-center justify-center text-lg shadow-xs"
+                     style="background-color: ${folder.Color_Pastel || '#88A28E'}25; border: 1px solid ${folder.Color_Pastel || '#88A28E'}50;">
+                  ${folder.Icono || '📁'}
+                </div>
+                <div>
+                  <h4 class="font-serif font-bold text-sm text-stone-800 flex items-center gap-1.5">
+                    <span>${escapeHtml(folder.Nombre)}</span>
+                    <span class="text-[11px] font-sans text-stone-400">(${stats.count} hábitos)</span>
+                  </h4>
+                  <p class="text-[10px] text-stone-500 mt-0.5">
+                    ${isExpanded ? '▲ Toca para colapsar detalles' : '▼ Toca para gestionar hábitos internos'}
+                  </p>
+                </div>
+              </div>
+
+              <!-- Acciones de Carpeta -->
+              <div class="flex items-center gap-1" onclick="event.stopPropagation()">
+                <button type="button" onclick="openEditFolderModal('${folder.ID_Carpeta}')" class="w-7 h-7 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-600 flex items-center justify-center text-xs transition-colors" title="Editar Carpeta">
+                  ✏️
+                </button>
+                <button type="button" onclick="window.deleteFolderDirect('${folder.ID_Carpeta}')" class="w-7 h-7 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center text-xs transition-colors" title="Eliminar Carpeta">
+                  🗑️
+                </button>
+              </div>
+            </div>
+
+            <!-- Mini-Dashboard Mensual de la Carpeta -->
+            <div class="bg-stone-50/80 p-2.5 rounded-xl border border-stone-100 space-y-1.5 mt-2">
+              <div class="flex items-center justify-between text-[11px]">
+                <span class="text-stone-600">
+                  Este mes deberías haber cumplido con <strong>${stats.expected}</strong> actividades y llevas <strong>${stats.completed}</strong> cumplidas (<strong>${stats.percent}%</strong>)
+                </span>
+                <span class="font-bold text-xs ml-2" style="color: ${folder.Color_Pastel || '#88A28E'};">${stats.percent}%</span>
+              </div>
+              <div class="w-full bg-stone-200/80 rounded-full h-2 overflow-hidden">
+                <div class="h-full rounded-full transition-all duration-300"
+                     style="width: ${stats.percent}%; background-color: ${folder.Color_Pastel || '#88A28E'};"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Hábitos Internos Desplegables -->
+          ${isExpanded ? `
+            <div class="mt-3 pt-3 border-t border-stone-200/70 space-y-2">
+              <div class="flex items-center justify-between mb-1">
+                <span class="text-[11px] font-bold text-stone-600 uppercase tracking-wider">Hábitos de esta Carpeta:</span>
+                <button type="button" onclick="openNewHabitModal('${escapeAttr(folder.Nombre)}')" class="btn-tactile btn-tactile-sage px-2 py-1 text-[11px] gap-1 font-semibold">
+                  <span>➕</span>
+                  <span>Crear Hábito en esta Carpeta</span>
+                </button>
+              </div>
+
+              ${folderHabits.length === 0 ? `
+                <div class="p-3 text-center text-stone-400 text-[11px] bg-white rounded-xl border border-dashed border-stone-200">
+                  No hay hábitos en esta carpeta todavía. Toca <strong>➕ Crear Hábito en esta Carpeta</strong> arriba.
+                </div>
+              ` : `
+                <div class="space-y-1.5">
+                  ${folderHabits.map(h => {
+                    const hStats = calculateHabitMonthlyStats(h);
+                    const diasStr = (!h.Dias_Programados || h.Dias_Programados === 'todos' || h.Dias_Programados === 'all')
+                      ? 'Todos los días'
+                      : h.Dias_Programados;
+                    const freqStr = (h.Meta_Diaria_Veces || 1) > 1
+                      ? `${h.Meta_Diaria_Veces} veces/día`
+                      : '1 vez/día';
+
+                    return `
+                      <div class="folder-manager-habit-row shadow-2xs">
+                        <div class="flex-1 min-w-0">
+                          <div class="flex items-center gap-1.5 flex-wrap">
+                            <span class="text-sm">${h.Icono || '✨'}</span>
+                            <span class="font-bold text-stone-800 truncate">${escapeHtml(h.Nombre)}</span>
+                            <span class="notion-pill pill-gray text-[9px]">${escapeHtml(diasStr)}</span>
+                            <span class="notion-pill pill-sage text-[9px]">${freqStr}</span>
+                          </div>
+                          <div class="flex items-center gap-2 mt-1 text-[10px] text-stone-500">
+                            <span>Cumplimiento mes: <strong>${hStats.completed} de ${hStats.expected}</strong> (${hStats.percent}%)</span>
+                            <div class="w-16 bg-stone-100 rounded-full h-1.5 overflow-hidden">
+                              <div class="h-full bg-emerald-500 rounded-full" style="width: ${hStats.percent}%;"></div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div class="flex items-center gap-1 flex-shrink-0">
+                          <button type="button" onclick="openEditHabitModal('${h.ID_Habito}')" class="p-1 text-stone-500 hover:text-stone-800 text-xs" title="Editar Hábito">
+                            ✏️
+                          </button>
+                          <button type="button" onclick="window.deleteHabitDirect('${h.ID_Habito}')" class="p-1 text-rose-500 hover:text-rose-700 text-xs" title="Borrar Hábito">
+                            🗑️
+                          </button>
+                        </div>
+                      </div>
+                    `;
+                  }).join("")}
+                </div>
+              `}
+            </div>
+          ` : ''}
+        </div>
+      `;
+    });
+
+    container.innerHTML = html;
+  }
+  window.renderFolderManagerList = renderFolderManagerList;
 
   // ============================================================================
   // CONMUTACIÓN DE PESTAÑAS (SWITCHTAB) & GESTOS TÁCTILES
@@ -2695,6 +3116,7 @@
       if (e.key === "Escape") {
         window.closeNewHabitModal();
         window.closeNewFolderModal();
+        window.closeFolderManagerModal();
         window.closeSettingsModal();
         window.closeHabitNoteModal();
         window.closeConfirmPeriodModal();

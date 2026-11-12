@@ -692,3 +692,43 @@ h1, h2, h3, .font-serif {
   background: #F0ECE4;
   transform: scale(1.18);
 }
+
+/* ==============================================================================
+ * 12. ADMINISTRADOR INTEGRAL DE CARPETAS Y HÁBITOS
+ * ============================================================================== */
+.folder-manager-card {
+  background: #FCFBF9;
+  border: 1px solid #E8E2D8;
+  border-radius: 18px;
+  padding: 0.85rem 1rem;
+  transition: all 0.2s ease;
+}
+
+.folder-manager-card:hover {
+  border-color: #D6CEBE;
+  background: #FFFFFF;
+}
+
+.folder-manager-habit-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  background: #FFFFFF;
+  border: 1px solid #F0ECE4;
+  border-radius: 14px;
+  transition: background 0.15s ease;
+}
+
+.folder-manager-habit-row:hover {
+  background: #FAF8F5;
+}
+
+.orphan-warning-box {
+  background: #FFFBEB;
+  border: 1px solid #FCD34D;
+  border-radius: 16px;
+  padding: 0.85rem 1rem;
+}
+

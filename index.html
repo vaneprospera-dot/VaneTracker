@@ -182,16 +182,22 @@
         </div>
       </div>
 
-      <!-- Botones de Acción: Nueva Carpeta y Nuevo Hábito -->
-      <div class="flex items-center justify-between gap-2">
-        <button type="button" onclick="openNewFolderModal()" class="btn-tactile btn-tactile-white px-3 py-2 text-xs gap-1.5 shadow-xs">
-          <span>📁</span>
-          <span>+ Carpeta</span>
+      <!-- Botones de Acción: Administrar Carpetas, Nueva Carpeta y Nuevo Hábito -->
+      <div class="flex items-center justify-between gap-2 flex-wrap">
+        <button type="button" onclick="openFolderManagerModal()" class="btn-tactile btn-tactile-white px-3 py-2 text-xs gap-1.5 shadow-xs border-stone-200 hover:border-amber-300 bg-amber-50/40 text-stone-700 font-bold">
+          <span>🗂️</span>
+          <span>Administrar Carpetas</span>
         </button>
-        <button type="button" onclick="openNewHabitModal()" class="btn-tactile btn-tactile-sage px-3.5 py-2 text-xs gap-1.5 shadow-xs">
-          <span>✨</span>
-          <span>+ Nuevo Hábito</span>
-        </button>
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="openNewFolderModal()" class="btn-tactile btn-tactile-white px-3 py-2 text-xs gap-1.5 shadow-xs">
+            <span>📁</span>
+            <span>+ Carpeta</span>
+          </button>
+          <button type="button" onclick="openNewHabitModal()" class="btn-tactile btn-tactile-sage px-3.5 py-2 text-xs gap-1.5 shadow-xs">
+            <span>✨</span>
+            <span>+ Nuevo Hábito</span>
+          </button>
+        </div>
       </div>
 
       <!-- Lista de Hábitos Agrupados por Carpetas Colapsables (CRUD y Toggle) -->
@@ -966,6 +972,44 @@
           <button onclick="confirmPeriodStartWithDate()" class="flex-1 btn-tactile btn-tactile-rose py-2.5 text-xs font-bold">
             ✓ Confirmar y Recalcular
           </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 9. MODAL: ADMINISTRADOR INTEGRAL DE CARPETAS Y HÁBITOS -->
+  <!-- ========================================================================= -->
+  <div id="folder-manager-modal" class="modal-overlay">
+    <div class="bg-white rounded-3xl p-5 md:p-6 max-w-lg w-full border border-stone-200 shadow-2xl animate-pop max-h-[90vh] flex flex-col">
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between pb-3 border-b border-stone-100 mb-3 flex-shrink-0">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">🗂️</span>
+          <div>
+            <h3 class="font-serif font-bold text-base md:text-lg text-stone-800">Administrar Carpetas</h3>
+            <p class="text-[11px] text-stone-400">Resumen mensual y gestión integral de hábitos</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="openNewFolderModal()" class="btn-tactile btn-tactile-sage px-2.5 py-1.5 text-xs gap-1 shadow-xs font-semibold">
+            <span>➕</span>
+            <span>Nueva Carpeta</span>
+          </button>
+          <button type="button" onclick="closeFolderManagerModal()" class="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-500 font-bold flex items-center justify-center text-sm transition-colors">
+            ✕
+          </button>
+        </div>
+      </div>
+
+      <!-- Scrollable Content -->
+      <div class="flex-1 overflow-y-auto space-y-4 pr-1 text-xs">
+        <!-- Sección Alerta: Hábitos Huérfanos (si existen) -->
+        <div id="folder-manager-orphans-container" class="hidden"></div>
+
+        <!-- Lista de Carpetas con Mini-Dashboard y Hábitos Desplegables -->
+        <div id="folder-manager-cards-container" class="space-y-3">
+          <!-- Renderizado dinámico -->
         </div>
       </div>
     </div>
