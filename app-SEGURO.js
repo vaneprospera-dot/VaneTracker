@@ -261,6 +261,18 @@
     try { setupMobileAudioUnlock(); } catch (e) {}
     try { setupDomListeners(); } catch (e) {}
     try { setupTouchSwipe(); } catch (e) {}
+
+    // Migración V6.0: Limpieza obligatoria de registros antiguos de prueba/maquetado en LocalStorage
+    try {
+      const v6Clean = localStorage.getItem("vanetracker_v6_cleaned");
+      if (!v6Clean) {
+        localStorage.removeItem("vanetracker_logs");
+        localStorage.removeItem("vanetracker_journal");
+        localStorage.removeItem("vanetracker_cycle_logs");
+        localStorage.setItem("vanetracker_v6_cleaned", "true");
+      }
+    } catch (e) {}
+
     try { loadFromLocalStorage(); } catch (e) {}
     try { seedProductionData(false); } catch (e) {}
 
@@ -286,156 +298,52 @@
       return;
     }
 
-    console.log("🌸 Inicializando datos limpios de producción V4.0...");
+    console.log("🌸 Inicializando estructura base limpia de producción V6.0...");
 
-    const todayStr = getTodayString();
-    const dToday = parseDateKey(todayStr);
-
-    function getDateOffset(days) {
-      const d = new Date(dToday);
-      d.setDate(d.getDate() + days);
-      return formatDateKey(d);
+    // 1. CARPETAS BASE (Estructura inicial vacía de registros)
+    if (!state.folders || state.folders.length === 0) {
+      state.folders = [
+        { ID_Carpeta: "c1", Nombre: "Salud & Bienestar", Icono: "🌸", Color_Pastel: "#88A28E", Orden: 1, Fecha_Creacion: new Date().toISOString() },
+        { ID_Carpeta: "c2", Nombre: "Matilda (Nuestra Hija Perruna)", Icono: "🐕", Color_Pastel: "#E5A93C", Orden: 2, Fecha_Creacion: new Date().toISOString() },
+        { ID_Carpeta: "c3", Nombre: "Hogar & Limpieza", Icono: "🧹", Color_Pastel: "#7BAFD4", Orden: 3, Fecha_Creacion: new Date().toISOString() },
+        { ID_Carpeta: "c4", Nombre: "Crecimiento Personal", Icono: "📚", Color_Pastel: "#9C8EC9", Orden: 4, Fecha_Creacion: new Date().toISOString() }
+      ];
     }
 
-    // 1. CARPETAS GLOBALES
-    state.folders = [
-      { ID_Carpeta: "c1", Nombre: "Salud & Bienestar", Icono: "🌸", Color_Pastel: "#88A28E", Orden: 1, Fecha_Creacion: new Date().toISOString() },
-      { ID_Carpeta: "c2", Nombre: "Matilda (Nuestra Hija Perruna)", Icono: "🐕", Color_Pastel: "#E5A93C", Orden: 2, Fecha_Creacion: new Date().toISOString() },
-      { ID_Carpeta: "c3", Nombre: "Hogar & Limpieza", Icono: "🧹", Color_Pastel: "#7BAFD4", Orden: 3, Fecha_Creacion: new Date().toISOString() },
-      { ID_Carpeta: "c4", Nombre: "Crecimiento Personal", Icono: "📚", Color_Pastel: "#9C8EC9", Orden: 4, Fecha_Creacion: new Date().toISOString() }
-    ];
-
-    // 2. CATÁLOGO DE HÁBITOS
-    state.habitsCatalog = [
-      { ID_Habito: "h1", Nombre: "Bañarse con agüita rica", Icono: "🚿", Color_Pastel: "#88A28E", Carpeta_Global: "Salud & Bienestar", Dias_Programados: "todos", Meta_Diaria_Veces: 1, Activo: true },
-      { ID_Habito: "h2", Nombre: "Hacer pupú feliz", Icono: "🚽", Color_Pastel: "#E8927C", Carpeta_Global: "Salud & Bienestar", Dias_Programados: "todos", Meta_Diaria_Veces: 1, Activo: true },
-      { ID_Habito: "h3", Nombre: "Pasear a Matilda", Icono: "🐕", Color_Pastel: "#E5A93C", Carpeta_Global: "Matilda (Nuestra Hija Perruna)", Dias_Programados: "todos", Meta_Diaria_Veces: 3, Activo: true },
-      { ID_Habito: "h4", Nombre: "Tomar agua (2 Litros)", Icono: "💧", Color_Pastel: "#7BAFD4", Carpeta_Global: "Salud & Bienestar", Dias_Programados: "todos", Meta_Diaria_Veces: 4, Activo: true },
-      { ID_Habito: "h5", Nombre: "Hacer ejercicio / Estiramientos", Icono: "🏃‍♀️", Color_Pastel: "#D9969D", Carpeta_Global: "Salud & Bienestar", Dias_Programados: "L,M,V", Meta_Diaria_Veces: 1, Activo: true },
-      { ID_Habito: "h6", Nombre: "Rutina de Skincare & Mascarilla", Icono: "✨", Color_Pastel: "#C8A2C8", Carpeta_Global: "Salud & Bienestar", Dias_Programados: "todos", Meta_Diaria_Veces: 1, Activo: true },
-      { ID_Habito: "h7", Nombre: "Limpieza de mesas y cocina", Icono: "🧽", Color_Pastel: "#7BAFD4", Carpeta_Global: "Hogar & Limpieza", Dias_Programados: "L,X,V", Meta_Diaria_Veces: 1, Activo: true },
-      { ID_Habito: "h8", Nombre: "Limpieza profunda baños", Icono: "🧼", Color_Pastel: "#7BAFD4", Carpeta_Global: "Hogar & Limpieza", Dias_Programados: "S", Meta_Diaria_Veces: 1, Activo: true },
-      { ID_Habito: "h9", Nombre: "Cepillar y consentir a Matilda", Icono: "🐾", Color_Pastel: "#E5A93C", Carpeta_Global: "Matilda (Nuestra Hija Perruna)", Dias_Programados: "todos", Meta_Diaria_Veces: 1, Activo: true },
-      { ID_Habito: "h10", Nombre: "Leer 15 minutos en paz", Icono: "📖", Color_Pastel: "#9C8EC9", Carpeta_Global: "Crecimiento Personal", Dias_Programados: "todos", Meta_Diaria_Veces: 1, Activo: true }
-    ];
-
-    // 3. REGISTRO DE HÁBITOS DE PRUEBA (HISTORIAL DE 28 DÍAS CON RACHA VIVA)
-    state.habitsLog = {};
-    for (let offset = -28; offset <= 0; offset++) {
-      const dStr = getDateOffset(offset);
-      state.habitsLog[dStr] = {};
-
-      state.habitsCatalog.forEach((h) => {
-        if (!isHabitScheduledForDate(h, dStr)) return;
-        const target = h.Meta_Diaria_Veces || 1;
-        let isDone = false;
-        let times = 0;
-
-        if (offset === 0) {
-          // Hoy: Baño y Pupú completados para probar interacción
-          if (h.ID_Habito === "h1" || h.ID_Habito === "h2") {
-            isDone = true;
-            times = target;
-          }
-        } else if (offset >= -5) {
-          // Últimos 5 días racha activa
-          isDone = true;
-          times = target;
-        } else if (offset % 3 !== 0) {
-          isDone = true;
-          times = target;
-        }
-
-        state.habitsLog[dStr][h.Nombre] = {
-          ID_Registro: `reg_${dStr}_${h.ID_Habito}`,
-          Fecha_Habito: dStr,
-          Timestamp_Creacion: new Date().toISOString(),
-          Nombre_Habito: h.Nombre,
-          Categoria_Icono: h.Icono,
-          Estado: isDone ? "Completado" : "Pendiente",
-          Comentarios: isDone && offset === 0 ? "Me sentí súper fresca y relajada 🌸" : "",
-          Carpeta_Global: h.Carpeta_Global,
-          Dias_Programados: h.Dias_Programados,
-          Meta_Diaria_Veces: target,
-          Veces_Completadas_Hoy: times,
-          Escala_Emocion: "5 - Increíble",
-          URL_Fotografia: ""
-        };
-      });
+    // 2. CATÁLOGO BASE DE HÁBITOS
+    if (!state.habitsCatalog || state.habitsCatalog.length === 0) {
+      state.habitsCatalog = [
+        { ID_Habito: "h1", Nombre: "Bañarse con agüita rica", Icono: "🚿", Color_Pastel: "#88A28E", Carpeta_Global: "Salud & Bienestar", Dias_Programados: "todos", Meta_Diaria_Veces: 1, Activo: true },
+        { ID_Habito: "h2", Nombre: "Hacer pupú feliz", Icono: "🚽", Color_Pastel: "#E8927C", Carpeta_Global: "Salud & Bienestar", Dias_Programados: "todos", Meta_Diaria_Veces: 1, Activo: true },
+        { ID_Habito: "h3", Nombre: "Pasear a Matilda", Icono: "🐕", Color_Pastel: "#E5A93C", Carpeta_Global: "Matilda (Nuestra Hija Perruna)", Dias_Programados: "todos", Meta_Diaria_Veces: 3, Activo: true },
+        { ID_Habito: "h4", Nombre: "Tomar agua (2 Litros)", Icono: "💧", Color_Pastel: "#7BAFD4", Carpeta_Global: "Salud & Bienestar", Dias_Programados: "todos", Meta_Diaria_Veces: 4, Activo: true },
+        { ID_Habito: "h5", Nombre: "Hacer ejercicio / Estiramientos", Icono: "🏃‍♀️", Color_Pastel: "#D9969D", Carpeta_Global: "Salud & Bienestar", Dias_Programados: "L,M,V", Meta_Diaria_Veces: 1, Activo: true },
+        { ID_Habito: "h6", Nombre: "Rutina de Skincare & Mascarilla", Icono: "✨", Color_Pastel: "#C8A2C8", Carpeta_Global: "Salud & Bienestar", Dias_Programados: "todos", Meta_Diaria_Veces: 1, Activo: true },
+        { ID_Habito: "h7", Nombre: "Limpieza de mesas y cocina", Icono: "🧽", Color_Pastel: "#7BAFD4", Carpeta_Global: "Hogar & Limpieza", Dias_Programados: "L,X,V", Meta_Diaria_Veces: 1, Activo: true },
+        { ID_Habito: "h8", Nombre: "Limpieza profunda baños", Icono: "🧼", Color_Pastel: "#7BAFD4", Carpeta_Global: "Hogar & Limpieza", Dias_Programados: "S", Meta_Diaria_Veces: 1, Activo: true },
+        { ID_Habito: "h9", Nombre: "Cepillar y consentir a Matilda", Icono: "🐾", Color_Pastel: "#E5A93C", Carpeta_Global: "Matilda (Nuestra Hija Perruna)", Dias_Programados: "todos", Meta_Diaria_Veces: 1, Activo: true },
+        { ID_Habito: "h10", Nombre: "Leer 15 minutos en paz", Icono: "📖", Color_Pastel: "#9C8EC9", Carpeta_Global: "Crecimiento Personal", Dias_Programados: "todos", Meta_Diaria_Veces: 1, Activo: true }
+      ];
     }
 
-    // 4. MEMORIAS DEL DIARIO
-    state.journalEntries = [
-      {
-        ID_Entrada: "j_1",
-        Fecha_Entrada: getDateOffset(-2),
-        Timestamp_Creacion: new Date().toISOString(),
-        Segmento_Categoria: "Matilda / Mascotas",
-        Comentario_Nota: "Matilda aprendió a dar la patita sin pedir golosina primero 🐾. Se quedó mirándome con sus ojitos tiernos y me llenó el corazón de una alegría inmensa. ¡Es la perrita más linda de este mundo!",
-        URL_Fotografia: "",
-        Escala_Emocion: "5 - Increíble"
-      },
-      {
-        ID_Entrada: "j_2",
-        Fecha_Entrada: getDateOffset(-1),
-        Timestamp_Creacion: new Date().toISOString(),
-        Segmento_Categoria: "Gratitud",
-        Comentario_Nota: "Agradecida por este hogar cálido, por el cafecito caliente de la mañana con Luis y por la oportunidad de florecer cada día un poquito más ✨.",
-        URL_Fotografia: "",
-        Escala_Emocion: "5 - Increíble"
-      }
-    ];
-
-    // 5. CICLO MENSTRUAL
-    state.cycleSettings = {
-      lastPeriodStart: getDateOffset(-12),
-      cycleDuration: 28,
-      periodDuration: 5,
-      follicularDuration: 8,
-      ovulationDuration: 4,
-      lutealDuration: 11
-    };
-
-    state.cycleLogs = [
-      {
-        ID_Ciclo: "c_log_1",
-        Fecha_Registro: getDateOffset(-12),
-        Fecha_Inicio_Periodo: getDateOffset(-12),
-        Fase_Actual: "Menstrual",
-        Nivel_Flujo: "Abundante",
-        Sintomas: "Cólicos, Fatiga",
-        Estado_Animo: "Sensible",
-        Notas_Ciclo: "Inicio del ciclo. Té caliente de manzanilla y descanso con cobijita.",
-        URL_Fotografia: "",
-        Timestamp_Creacion: new Date().toISOString()
-      },
-      {
-        ID_Ciclo: "c_log_2",
-        Fecha_Registro: todayStr,
-        Fecha_Inicio_Periodo: getDateOffset(-12),
-        Fase_Actual: "Ovulación",
-        Nivel_Flujo: "Clara de huevo",
-        Sintomas: "Sensibilidad, Antojos",
-        Estado_Animo: "Increíble",
-        Notas_Ciclo: "Día fértil y con mucha energía positiva. Sintiéndome radiante.",
-        URL_Fotografia: "",
-        Timestamp_Creacion: new Date().toISOString()
-      }
-    ];
+    // 3. REGISTROS HISTÓRICOS 100% LIMPIOS (CERO DATOS DE PRUEBA / MOCK DATA)
+    if (!state.habitsLog) state.habitsLog = {};
+    if (!state.journalEntries) state.journalEntries = [];
+    if (!state.cycleLogs) state.cycleLogs = [];
+    if (!state.cycleSettings) {
+      state.cycleSettings = {
+        lastPeriodStart: "",
+        cycleDuration: 28,
+        periodDuration: 5,
+        follicularDuration: 8,
+        ovulationDuration: 4,
+        lutealDuration: 11
+      };
+    }
 
     saveToLocalStorage();
-    localStorage.setItem("vanetracker_version", "4.0.0");
+    localStorage.setItem("vanetracker_version", "6.0.0");
   }
-
-  window.resetToMockData = function () {
-    if (confirm("¿Deseas reiniciar los datos de prueba del maquetado?")) {
-      seedProductionData(true);
-      renderAll();
-      playSuccessSound();
-      triggerCuteConfetti();
-      alert("🌸 ¡Datos restaurados con éxito! Ahora puedes interactuar libremente con todos los módulos.");
-    }
-  };
 
   // ============================================================================
   // PERSISTENCIA LOCALSTORAGE
@@ -961,13 +869,13 @@
               ${target > 1 ? `
                 <div class="flex items-center gap-1.5">
                   <button type="button"
-                          onclick="decrementHabitCount('${escapeAttr(habit.Nombre)}')"
+                          onclick="decrementHabitCount('${habit.ID_Habito}')"
                           class="w-7 h-7 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs flex items-center justify-center">
                     -
                   </button>
                   <span class="font-bold text-xs text-stone-700 px-1">${currentCount}/${target}</span>
                   <button type="button"
-                          onclick="incrementHabitCount('${escapeAttr(habit.Nombre)}')"
+                          onclick="incrementHabitCount('${habit.ID_Habito}')"
                           class="w-7 h-7 rounded-xl bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold text-xs flex items-center justify-center">
                     +
                   </button>
@@ -975,7 +883,7 @@
               ` : `
                 <!-- Botón Toggle Principal: Lo Hizo -->
                 <button type="button"
-                        onclick="toggleHabitStatus('${escapeAttr(habit.Nombre)}')"
+                        onclick="toggleHabitStatus('${habit.ID_Habito}')"
                         class="btn-tactile ${isCompleted ? 'btn-tactile-sage' : 'btn-tactile-white'} px-3 py-1.5 text-xs gap-1 shadow-xs">
                   <span>${isCompleted ? '✓' : '○'}</span>
                   <span>${isCompleted ? '¡Completado! (Toca para desmarcar)' : 'Marcar Hecho'}</span>
@@ -985,13 +893,13 @@
               <!-- Acciones Secundarias: No lo hizo & Nota/Foto -->
               <div class="flex items-center gap-1.5">
                 <button type="button"
-                        onclick="setHabitFailedStatus('${escapeAttr(habit.Nombre)}')"
+                        onclick="setHabitFailedStatus('${habit.ID_Habito}')"
                         class="p-1.5 rounded-xl border border-stone-200 hover:bg-rose-50 text-[11px] text-stone-500 hover:text-rose-600 transition-colors"
                         title="Marcar como no realizado">
                   ❌
                 </button>
                 <button type="button"
-                        onclick="openHabitNoteModal('${escapeAttr(habit.Nombre)}')"
+                        onclick="openHabitNoteModal('${habit.ID_Habito}')"
                         class="p-1.5 rounded-xl border border-stone-200 hover:bg-stone-100 text-[11px] text-stone-600 flex items-center gap-1"
                         title="Escribir comentario o adjuntar foto">
                   <span>📝</span>
@@ -1004,7 +912,7 @@
             <!-- Previsualización de Comentario o Foto de este hábito si existe -->
             ${(hasComment || hasPhoto) ? `
               <div class="bg-stone-50/70 p-2.5 rounded-xl border border-stone-200/60 text-xs flex items-start gap-2.5 cursor-pointer hover:bg-stone-100/60 transition-colors"
-                   onclick="openLightboxFromHabit('${escapeAttr(habit.Nombre)}')">
+                   onclick="openLightboxFromHabit('${habit.ID_Habito}')">
                 ${hasPhoto ? `<img src="${log.URL_Fotografia}" class="w-10 h-10 object-cover rounded-lg border border-stone-200 flex-shrink-0" alt="Foto Hábito" />` : ''}
                 <div class="flex-1 min-w-0">
                   <p class="text-[11px] text-stone-600 italic line-clamp-2">"${escapeHtml(log.Comentarios || 'Foto adjunta de hoy')}"</p>
@@ -1039,15 +947,16 @@
   // ============================================================================
   // INTERACCIÓN TOGGLE DE HÁBITOS (MARCAR / DESMARCAR / CONTADOR)
   // ============================================================================
-  window.toggleHabitStatus = function (habitName) {
+  window.toggleHabitStatus = function (habitIdentifier) {
     const f = state.selectedDate;
     if (!state.habitsLog[f]) state.habitsLog[f] = {};
-    const habitDef = state.habitsCatalog.find(h => h.Nombre === habitName) || { Icono: "✨", Meta_Diaria_Veces: 1, Carpeta_Global: "General" };
+    const habitDef = state.habitsCatalog.find(h => h.ID_Habito === habitIdentifier || h.Nombre === habitIdentifier) || { ID_Habito: habitIdentifier, Nombre: habitIdentifier, Icono: "✨", Meta_Diaria_Veces: 1, Carpeta_Global: "General" };
+    const habitName = habitDef.Nombre;
     const existing = state.habitsLog[f][habitName] || {};
     const target = habitDef.Meta_Diaria_Veces || 1;
 
-    // Si ya está completado -> DESMARCAR (volver a pendiente)
-    const isCurrentlyDone = existing.Estado === "Completado" || (existing.Veces_Completadas_Hoy >= target);
+    // Si ya está completado -> DESMARCAR (volver a pendiente y count = 0)
+    const isCurrentlyDone = existing.Estado === "Completado" || (Number(existing.Veces_Completadas_Hoy || 0) >= target);
 
     if (isCurrentlyDone) {
       existing.Estado = "Pendiente";
@@ -1079,10 +988,11 @@
     sendAsyncLogToBackend("save_habit_log", { record: existing });
   };
 
-  window.setHabitFailedStatus = function (habitName) {
+  window.setHabitFailedStatus = function (habitIdentifier) {
     const f = state.selectedDate;
     if (!state.habitsLog[f]) state.habitsLog[f] = {};
-    const habitDef = state.habitsCatalog.find(h => h.Nombre === habitName) || { Icono: "✨", Meta_Diaria_Veces: 1, Carpeta_Global: "General" };
+    const habitDef = state.habitsCatalog.find(h => h.ID_Habito === habitIdentifier || h.Nombre === habitIdentifier) || { ID_Habito: habitIdentifier, Nombre: habitIdentifier, Icono: "✨", Meta_Diaria_Veces: 1, Carpeta_Global: "General" };
+    const habitName = habitDef.Nombre;
     const existing = state.habitsLog[f][habitName] || {};
 
     existing.Estado = "No_Realizado";
@@ -1106,10 +1016,11 @@
     sendAsyncLogToBackend("save_habit_log", { record: existing });
   };
 
-  window.incrementHabitCount = function (habitName) {
+  window.incrementHabitCount = function (habitIdentifier) {
     const f = state.selectedDate;
     if (!state.habitsLog[f]) state.habitsLog[f] = {};
-    const habitDef = state.habitsCatalog.find(h => h.Nombre === habitName) || { Icono: "✨", Meta_Diaria_Veces: 1 };
+    const habitDef = state.habitsCatalog.find(h => h.ID_Habito === habitIdentifier || h.Nombre === habitIdentifier) || { ID_Habito: habitIdentifier, Nombre: habitIdentifier, Icono: "✨", Meta_Diaria_Veces: 1 };
+    const habitName = habitDef.Nombre;
     const existing = state.habitsLog[f][habitName] || {};
     const target = habitDef.Meta_Diaria_Veces || 1;
 
@@ -1143,20 +1054,27 @@
     sendAsyncLogToBackend("save_habit_log", { record: existing });
   };
 
-  window.decrementHabitCount = function (habitName) {
+  window.decrementHabitCount = function (habitIdentifier) {
     const f = state.selectedDate;
     if (!state.habitsLog[f]) state.habitsLog[f] = {};
-    const habitDef = state.habitsCatalog.find(h => h.Nombre === habitName) || { Icono: "✨", Meta_Diaria_Veces: 1 };
+    const habitDef = state.habitsCatalog.find(h => h.ID_Habito === habitIdentifier || h.Nombre === habitIdentifier) || { ID_Habito: habitIdentifier, Nombre: habitIdentifier, Icono: "✨", Meta_Diaria_Veces: 1 };
+    const habitName = habitDef.Nombre;
     const existing = state.habitsLog[f][habitName] || {};
+    const target = habitDef.Meta_Diaria_Veces || 1;
 
     let count = Number(existing.Veces_Completadas_Hoy || 0) - 1;
     count = Math.max(0, count);
 
     existing.Veces_Completadas_Hoy = count;
-    existing.Estado = count === 0 ? "Pendiente" : (count >= (habitDef.Meta_Diaria_Veces || 1) ? "Completado" : "Pendiente");
+    existing.Estado = count === 0 ? "Pendiente" : (count >= target ? "Completado" : "Pendiente");
     existing.ID_Registro = existing.ID_Registro || `reg_${f}_${Date.now()}`;
     existing.Fecha_Habito = f;
+    existing.Timestamp_Creacion = new Date().toISOString();
     existing.Nombre_Habito = habitName;
+    existing.Categoria_Icono = habitDef.Icono;
+    existing.Carpeta_Global = habitDef.Carpeta_Global;
+    existing.Meta_Diaria_Veces = target;
+    existing.Escala_Emocion = state.currentDayMood;
 
     playGentleBlip();
     state.habitsLog[f][habitName] = existing;
@@ -1170,7 +1088,9 @@
   // ============================================================================
   // MODAL DE OBSERVACIÓN & FOTO DEL HÁBITO
   // ============================================================================
-  window.openHabitNoteModal = function (habitName) {
+  window.openHabitNoteModal = function (habitIdentifier) {
+    const habitDef = state.habitsCatalog.find(h => h.ID_Habito === habitIdentifier || h.Nombre === habitIdentifier) || { Nombre: habitIdentifier };
+    const habitName = habitDef.Nombre;
     state.habitNoteTarget = habitName;
     const f = state.selectedDate;
     const log = (state.habitsLog[f] && state.habitsLog[f][habitName]) || {};
@@ -1196,8 +1116,39 @@
     }
 
     const modal = document.getElementById("habit-note-modal");
-    if (modal) modal.classList.add("open");
+    if (modal) {
+      modal.style.zIndex = "999999";
+      modal.style.position = "fixed";
+      modal.style.inset = "0";
+      modal.classList.add("open");
+    }
     updateBodyModalScrollLock();
+  };
+
+  window.openHabitNoteModalForDate = function (habitIdentifier, dateStr) {
+    if (dateStr) state.selectedDate = dateStr;
+    window.openHabitNoteModal(habitIdentifier);
+  };
+
+  window.deleteHabitLogEntry = function (habitIdentifier, dateStr) {
+    const habitDef = state.habitsCatalog.find(h => h.ID_Habito === habitIdentifier || h.Nombre === habitIdentifier) || { Nombre: habitIdentifier };
+    const habitName = habitDef.Nombre;
+    const f = dateStr || state.selectedDate;
+    if (confirm(`¿Segura que deseas eliminar la nota/registro de "${habitName}" del ${formatDisplayDate(f)}?`)) {
+      if (state.habitsLog[f] && state.habitsLog[f][habitName]) {
+        const reg = state.habitsLog[f][habitName];
+        delete state.habitsLog[f][habitName];
+        if (Object.keys(state.habitsLog[f]).length === 0) {
+          delete state.habitsLog[f];
+        }
+        saveToLocalStorage();
+        renderHabitsModule();
+        renderDashboardModule();
+        if (typeof renderFolderManagerList === "function") renderFolderManagerList();
+        sendAsyncLogToBackend("delete_habit_log", { id: reg.ID_Registro, fecha: f, nombre: habitName });
+        playGentleBlip();
+      }
+    }
   };
 
   window.closeHabitNoteModal = function () {
@@ -1280,7 +1231,12 @@
     if (habitsSection) habitsSection.classList.add("hidden");
 
     const modal = document.getElementById("new-folder-modal");
-    if (modal) modal.classList.add("open");
+    if (modal) {
+      modal.style.zIndex = "999999";
+      modal.style.position = "fixed";
+      modal.style.inset = "0";
+      modal.classList.add("open");
+    }
     updateBodyModalScrollLock();
   };
 
@@ -1342,7 +1298,12 @@
     }
 
     const modal = document.getElementById("new-folder-modal");
-    if (modal) modal.classList.add("open");
+    if (modal) {
+      modal.style.zIndex = "999999";
+      modal.style.position = "fixed";
+      modal.style.inset = "0";
+      modal.classList.add("open");
+    }
     updateBodyModalScrollLock();
   };
 
@@ -1516,7 +1477,12 @@
     renderEmojiPickerGrid();
 
     const modal = document.getElementById("new-habit-modal");
-    if (modal) modal.classList.add("open");
+    if (modal) {
+      modal.style.zIndex = "999999";
+      modal.style.position = "fixed";
+      modal.style.inset = "0";
+      modal.classList.add("open");
+    }
     updateBodyModalScrollLock();
   };
 
@@ -1561,7 +1527,12 @@
     renderEmojiPickerGrid();
 
     const modal = document.getElementById("new-habit-modal");
-    if (modal) modal.classList.add("open");
+    if (modal) {
+      modal.style.zIndex = "999999";
+      modal.style.position = "fixed";
+      modal.style.inset = "0";
+      modal.classList.add("open");
+    }
     updateBodyModalScrollLock();
   };
 
@@ -1709,12 +1680,12 @@
     if (!container) return;
 
     let html = "";
-    state.journalCategories.forEach(cat => {
+    state.journalCategories.forEach((cat, idx) => {
       const isSel = state.selectedJournalCategory === cat.name;
       html += `
         <button type="button"
-                onclick="window.selectJournalCategory('${escapeAttr(cat.name)}')"
-                class="notion-pill ${cat.pillClass || 'pill-gray'} ${isSel ? 'ring-2 ring-stone-600 scale-105' : 'opacity-70'}">
+                onclick="window.selectJournalCategoryByIndex(${idx})"
+                class="notion-pill ${cat.pillClass || 'pill-gray'} ${isSel ? 'is-selected ring-2 ring-stone-800 font-bold scale-105' : 'opacity-70'}">
           <span>${cat.icon || '📌'}</span>
           <span>${escapeHtml(cat.name)}</span>
         </button>
@@ -1722,6 +1693,14 @@
     });
     container.innerHTML = html;
   }
+
+  window.selectJournalCategoryByIndex = function (idx) {
+    if (state.journalCategories[idx]) {
+      state.selectedJournalCategory = state.journalCategories[idx].name;
+      renderJournalCategoriesSelector();
+      playGentleBlip();
+    }
+  };
 
   window.selectJournalCategory = function (catName) {
     state.selectedJournalCategory = catName;
@@ -1926,12 +1905,12 @@
       </button>
     `;
 
-    state.journalCategories.forEach(cat => {
+    state.journalCategories.forEach((cat, idx) => {
       const count = state.journalEntries.filter(e => e.Segmento_Categoria === cat.name).length;
       if (count === 0) return;
       const isSel = state.journalFilterCategory === cat.name;
       html += `
-        <button type="button" onclick="setJournalFilter('${escapeAttr(cat.name)}')" class="notion-pill ${cat.pillClass} ${isSel ? 'ring-2 ring-stone-600 font-bold' : 'opacity-60'}">
+        <button type="button" onclick="setJournalFilterByIndex(${idx})" class="notion-pill ${cat.pillClass} ${isSel ? 'ring-2 ring-stone-600 font-bold' : 'opacity-60'}">
           ${cat.icon} ${escapeHtml(cat.name)} (${count})
         </button>
       `;
@@ -1939,6 +1918,14 @@
 
     container.innerHTML = html;
   }
+
+  window.setJournalFilterByIndex = function (idx) {
+    if (state.journalCategories[idx]) {
+      state.journalFilterCategory = state.journalCategories[idx].name;
+      renderJournalFilterPills();
+      renderJournalFeed();
+    }
+  };
 
   window.setJournalFilter = function (cat) {
     state.journalFilterCategory = cat;
@@ -2130,7 +2117,7 @@
           <div class="grid grid-cols-7 gap-1 text-center text-[9px] font-bold text-stone-400 mb-1">
             <div>D</div><div>L</div><div>M</div><div>X</div><div>J</div><div>V</div><div>S</div>
           </div>
-          <div class="grid grid-cols-7 gap-1">
+          <div class="grid grid-cols-7 cycle-grid-strip">
       `;
 
       // Celdas vacías previas
@@ -2138,15 +2125,36 @@
         html += `<div class="aspect-square"></div>`;
       }
 
-      // Días del mes
+      // Días del mes con franjas continuas
       for (let day = 1; day <= totalDays; day++) {
         const dStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
         const phaseInfo = calculateCyclePhase(dStr);
         const isToday = dStr === state.todayDate;
         const isSelected = dStr === state.selectedDate;
 
+        const dayOfWeek = (startDayOfWeek + day - 1) % 7;
+        const prevDate = new Date(year, month, day - 1);
+        const nextDate = new Date(year, month, day + 1);
+        const prevStr = formatDateKey(prevDate);
+        const nextStr = formatDateKey(nextDate);
+
+        const prevPhase = calculateCyclePhase(prevStr).phase;
+        const nextPhase = calculateCyclePhase(nextStr).phase;
+
+        const isStart = (dayOfWeek === 0) || (day === 1) || (prevPhase !== phaseInfo.phase);
+        const isEnd = (dayOfWeek === 6) || (day === totalDays) || (nextPhase !== phaseInfo.phase);
+
+        let stripClass = "cycle-range-strip-mid";
+        if (isStart && isEnd) {
+          stripClass = "cycle-range-strip-single";
+        } else if (isStart) {
+          stripClass = "cycle-range-strip-start";
+        } else if (isEnd) {
+          stripClass = "cycle-range-strip-end";
+        }
+
         html += `
-          <div class="cycle-day-cell ${phaseInfo.cellClass} ${isToday ? 'is-today' : ''} ${isSelected ? 'ring-2 ring-stone-800' : ''}"
+          <div class="cycle-day-cell ${phaseInfo.cellClass} ${stripClass} ${isToday ? 'is-today' : ''} ${isSelected ? 'ring-2 ring-stone-800' : ''}"
                title="${formatDisplayDate(dStr)}: Fase ${phaseInfo.phase}"
                onclick="window.selectDate('${dStr}')">
             <span>${day}</span>
@@ -2403,13 +2411,45 @@
               <p class="text-[11px] text-stone-500 mt-0.5 line-clamp-1">${escapeHtml(log.Sintomas || log.Notas_Ciclo || 'Sin síntomas')}</p>
             </div>
           </div>
-          <span class="text-stone-300 text-xs">🔍</span>
+          <div class="flex items-center gap-1" onclick="event.stopPropagation()">
+            <button type="button" onclick="window.editCycleLogEntry('${log.ID_Ciclo}')" class="p-1 rounded-lg hover:bg-stone-200 text-stone-500 hover:text-stone-800 text-xs" title="Editar Registro">✏️</button>
+            <button type="button" onclick="window.deleteCycleLogEntry('${log.ID_Ciclo}')" class="p-1 rounded-lg hover:bg-rose-100 text-rose-400 hover:text-rose-600 text-xs" title="Eliminar Registro">🗑️</button>
+            <span class="text-stone-300 text-xs ml-0.5 cursor-pointer" onclick="openLightboxFromCycle('${log.ID_Ciclo}')">🔍</span>
+          </div>
         </div>
       `;
     });
 
     container.innerHTML = html;
   }
+
+  window.editCycleLogEntry = function (cycleId) {
+    const log = state.cycleLogs.find(c => c.ID_Ciclo === cycleId);
+    if (!log) return;
+    state.selectedDate = log.Fecha_Registro;
+    state.cycleSelectedFlow = log.Nivel_Flujo || "Moderado";
+    state.cycleSelectedSymptoms = new Set((log.Sintomas || "").split(",").map(s => s.trim()).filter(Boolean));
+    state.cyclePhotoBase64 = log.URL_Fotografia || "";
+    const notesInput = document.getElementById("cycle-day-notes");
+    if (notesInput) notesInput.value = log.Notas_Ciclo || "";
+
+    window.switchTab("cycle");
+    renderCycleModule();
+    const flowEl = document.getElementById("cycle-flow-container");
+    if (flowEl) flowEl.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+
+  window.deleteCycleLogEntry = function (cycleId) {
+    const log = state.cycleLogs.find(c => c.ID_Ciclo === cycleId);
+    if (!log) return;
+    if (confirm(`¿Segura que deseas eliminar el registro de ciclo del ${formatDisplayDate(log.Fecha_Registro)}?`)) {
+      state.cycleLogs = state.cycleLogs.filter(c => c.ID_Ciclo !== cycleId);
+      saveToLocalStorage();
+      renderCycleModule();
+      sendAsyncLogToBackend("delete_cycle_log", { id: cycleId, fecha: log.Fecha_Registro });
+      playGentleBlip();
+    }
+  };
 
   // ============================================================================
   // 5. DASHBOARD & HISTORIAL VISUAL DE HÁBITOS
@@ -2641,7 +2681,11 @@
               <p class="text-[11px] text-stone-600 line-clamp-1 italic mt-0.5">"${escapeHtml(r.Comentarios || 'Foto adjunta')}"</p>
             </div>
           </div>
-          <span class="text-stone-300 text-xs">🔍</span>
+          <div class="flex items-center gap-1" onclick="event.stopPropagation()">
+            <button type="button" onclick="window.openHabitNoteModalForDate('${escapeAttr(r.Nombre_Habito)}', '${r.Fecha_Habito}')" class="p-1 rounded-lg hover:bg-stone-200 text-stone-500 hover:text-stone-800 text-xs" title="Editar Nota/Foto">✏️</button>
+            <button type="button" onclick="window.deleteHabitLogEntry('${escapeAttr(r.Nombre_Habito)}', '${r.Fecha_Habito}')" class="p-1 rounded-lg hover:bg-rose-100 text-rose-400 hover:text-rose-600 text-xs" title="Borrar Registro">🗑️</button>
+            <span class="text-stone-300 text-xs ml-0.5 cursor-pointer" onclick="openLightboxFromHabitLog('${escapeAttr(r.Nombre_Habito)}', '${r.Fecha_Habito}')">🔍</span>
+          </div>
         </div>
       `;
     });
@@ -2652,7 +2696,7 @@
   // ============================================================================
   // 6. POP-UP LIGHTBOX ELEGANTE ESTILO "APP DE BODA"
   // ============================================================================
-  function openGenericLightbox({ title, icon, dateStr, mood, pillsHtml, text, photoUrl, onEdit }) {
+  function openGenericLightbox({ title, icon, dateStr, mood, pillsHtml, text, photoUrl, onEdit, onDelete }) {
     const overlay = document.getElementById("lightbox-modal-overlay");
     const titleEl = document.getElementById("lightbox-title");
     const iconEl = document.getElementById("lightbox-icon");
@@ -2663,6 +2707,7 @@
     const photoWrap = document.getElementById("lightbox-photo-wrapper");
     const imgEl = document.getElementById("lightbox-img");
     const editBtn = document.getElementById("lightbox-edit-btn");
+    const deleteBtn = document.getElementById("lightbox-delete-btn");
 
     if (titleEl) titleEl.textContent = title || "Detalle de la Memoria";
     if (iconEl) iconEl.textContent = icon || "🌸";
@@ -2684,6 +2729,15 @@
         editBtn.classList.remove("hidden");
       } else {
         editBtn.classList.add("hidden");
+      }
+    }
+
+    if (deleteBtn) {
+      if (typeof onDelete === "function") {
+        deleteBtn.onclick = onDelete;
+        deleteBtn.classList.remove("hidden");
+      } else {
+        deleteBtn.classList.add("hidden");
       }
     }
 
@@ -2719,7 +2773,14 @@
       pillsHtml: `<span class="notion-pill ${cat.pillClass}">${cat.icon} ${escapeHtml(entry.Segmento_Categoria)}</span>`,
       text: entry.Comentario_Nota,
       photoUrl: entry.URL_Fotografia,
-      onEdit: () => window.editJournalEntry(entryId)
+      onEdit: () => {
+        window.closeLightboxModal();
+        window.editJournalEntry(entryId);
+      },
+      onDelete: () => {
+        window.closeLightboxModal();
+        window.deleteJournalEntry(entryId);
+      }
     });
   };
 
@@ -2743,7 +2804,14 @@
       `,
       text: log.Comentarios || "Hábito realizado",
       photoUrl: log.URL_Fotografia,
-      onEdit: () => window.openHabitNoteModal(habitName)
+      onEdit: () => {
+        window.closeLightboxModal();
+        window.openHabitNoteModalForDate(habitName, dateStr);
+      },
+      onDelete: () => {
+        window.closeLightboxModal();
+        window.deleteHabitLogEntry(habitName, dateStr);
+      }
     });
   };
 
@@ -2762,7 +2830,14 @@
       `,
       text: `Síntomas: ${log.Sintomas || 'Ninguno'}\n\nNotas: ${log.Notas_Ciclo || 'Sin observaciones'}`,
       photoUrl: log.URL_Fotografia,
-      onEdit: null
+      onEdit: () => {
+        window.closeLightboxModal();
+        window.editCycleLogEntry(cycleId);
+      },
+      onDelete: () => {
+        window.closeLightboxModal();
+        window.deleteCycleLogEntry(cycleId);
+      }
     });
   };
 
@@ -3353,6 +3428,50 @@
                           </button>
                         </div>
                       </div>
+
+                      <!-- Acordeón de Fechas y Registros Pasados de este Hábito -->
+                      <div class="mt-1 pt-1 border-t border-stone-100/80">
+                        <button type="button" onclick="window.toggleHabitHistoryAccordion('${h.ID_Habito}')" class="text-[10px] font-bold text-stone-500 hover:text-stone-800 flex items-center gap-1 py-0.5">
+                          <span>📅 Ver Registros y Fechas (${(() => {
+                            let cnt = 0;
+                            Object.keys(state.habitsLog).forEach(dKey => {
+                              if (state.habitsLog[dKey] && state.habitsLog[dKey][h.Nombre]) cnt++;
+                            });
+                            return cnt;
+                          })()})</span>
+                          <span id="accordion-arrow-${h.ID_Habito}">▼</span>
+                        </button>
+                        <div id="habit-records-${h.ID_Habito}" class="hidden space-y-1 mt-1 pl-2 border-l-2 border-stone-200">
+                          ${(() => {
+                            const habitLogs = [];
+                            Object.keys(state.habitsLog).sort().reverse().forEach(dKey => {
+                              if (state.habitsLog[dKey] && state.habitsLog[dKey][h.Nombre]) {
+                                habitLogs.push(state.habitsLog[dKey][h.Nombre]);
+                              }
+                            });
+                            if (habitLogs.length === 0) {
+                              return `<p class="text-[10px] text-stone-400 italic py-1">No hay registros guardados aún para este hábito.</p>`;
+                            }
+                            return habitLogs.map(r => `
+                              <div class="flex items-center justify-between p-1.5 rounded-lg bg-stone-50 border border-stone-200 text-[10px]">
+                                <div class="flex items-center gap-1.5 min-w-0">
+                                  <span class="font-bold text-stone-700">${formatDisplayDate(r.Fecha_Habito)}</span>
+                                  <span class="notion-pill ${r.Estado === 'Completado' ? 'pill-sage' : 'pill-gray'} text-[9px]">${r.Estado}</span>
+                                  ${r.Comentarios ? `<span class="text-stone-500 truncate italic">"${escapeHtml(r.Comentarios)}"</span>` : ''}
+                                </div>
+                                <div class="flex items-center gap-1 flex-shrink-0">
+                                  <button type="button" onclick="window.openHabitNoteModalForDate('${escapeAttr(h.Nombre)}', '${r.Fecha_Habito}')" class="px-1.5 py-0.5 rounded bg-white hover:bg-stone-200 text-stone-600 text-[10px] border border-stone-200" title="Editar Registro">
+                                    ✏️
+                                  </button>
+                                  <button type="button" onclick="window.deleteHabitLogEntry('${escapeAttr(h.Nombre)}', '${r.Fecha_Habito}')" class="px-1.5 py-0.5 rounded bg-rose-50 hover:bg-rose-100 text-rose-600 text-[10px] border border-rose-200" title="Eliminar Registro">
+                                    🗑️
+                                  </button>
+                                </div>
+                              </div>
+                            `).join("");
+                          })()}
+                        </div>
+                      </div>
                     `;
                   }).join("")}
                 </div>
@@ -3365,6 +3484,15 @@
 
     container.innerHTML = html;
   }
+  window.toggleHabitHistoryAccordion = function (habitId) {
+    const el = document.getElementById(`habit-records-${habitId}`);
+    const arrow = document.getElementById(`accordion-arrow-${habitId}`);
+    if (el) {
+      el.classList.toggle("hidden");
+      if (arrow) arrow.textContent = el.classList.contains("hidden") ? "▼" : "▲";
+    }
+  };
+
   window.renderFolderManagerList = renderFolderManagerList;
 
   // ============================================================================

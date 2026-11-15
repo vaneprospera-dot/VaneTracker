@@ -432,27 +432,27 @@ h1, h2, h3, .font-serif {
 }
 
 .phase-menstrual {
-  background: #FCF1EE;
-  color: #CF735C;
-  border: 1px solid rgba(232, 146, 124, 0.4);
+  background: #FFE4E6 !important;
+  color: #9F1239 !important;
+  border: 1px solid #E11D48 !important;
 }
 
 .phase-follicular {
-  background: #EBF1EC;
-  color: #6D8874;
-  border: 1px solid rgba(136, 162, 142, 0.4);
+  background: #D1FAE5 !important;
+  color: #065F46 !important;
+  border: 1px solid #059669 !important;
 }
 
 .phase-ovulation {
-  background: #FEF7E8;
-  color: #C98E24;
-  border: 1px solid rgba(229, 169, 60, 0.4);
+  background: #EDE9FE !important;
+  color: #5B21B6 !important;
+  border: 1px solid #7C3AED !important;
 }
 
 .phase-luteal {
-  background: #F2EFF9;
-  color: #8172AF;
-  border: 1px solid rgba(156, 142, 201, 0.4);
+  background: #FEF3C7 !important;
+  color: #92400E !important;
+  border: 1px solid #D97706 !important;
 }
 
 /* Contenedor Carrusel Horizontal Multi-Mes */
@@ -506,28 +506,62 @@ h1, h2, h3, .font-serif {
 }
 
 .cycle-day-cell.day-menstrual {
-  background-color: #FDE8E8 !important;
-  color: #C53030 !important;
-  border-color: #FEB2B2 !important;
+  background-color: #FFE4E6 !important;
+  color: #9F1239 !important;
+  border-color: #E11D48 !important;
 }
 
 .cycle-day-cell.day-follicular {
-  background-color: #E8F5E9 !important;
-  color: #2F855A !important;
-  border-color: #9AE6B4 !important;
+  background-color: #D1FAE5 !important;
+  color: #065F46 !important;
+  border-color: #059669 !important;
 }
 
 .cycle-day-cell.day-ovulation {
-  background-color: #FEF7E8 !important;
-  color: #C98E24 !important;
-  border-color: #FBD38D !important;
-  box-shadow: 0 0 0 1.5px rgba(201, 142, 36, 0.4);
+  background-color: #EDE9FE !important;
+  color: #5B21B6 !important;
+  border-color: #7C3AED !important;
+  box-shadow: 0 0 0 1.5px rgba(124, 58, 237, 0.4);
 }
 
 .cycle-day-cell.day-luteal {
-  background-color: #FFF0EB !important;
-  color: #C05621 !important;
-  border-color: #FBD38D !important;
+  background-color: #FEF3C7 !important;
+  color: #92400E !important;
+  border-color: #D97706 !important;
+}
+
+/* Franjas Continuas de Fases del Ciclo (Range Strip Unificado) */
+.cycle-range-strip-start {
+  border-top-left-radius: 999px !important;
+  border-bottom-left-radius: 999px !important;
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+  border-right: none !important;
+}
+
+.cycle-range-strip-mid {
+  border-radius: 0 !important;
+  border-left: none !important;
+  border-right: none !important;
+}
+
+.cycle-range-strip-end {
+  border-top-right-radius: 999px !important;
+  border-bottom-right-radius: 999px !important;
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+  border-left: none !important;
+}
+
+.cycle-range-strip-single {
+  border-radius: 999px !important;
+}
+
+.cycle-grid-strip {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  column-gap: 0px !important;
+  row-gap: 4px !important;
 }
 
 .cycle-day-cell.is-today {
@@ -667,6 +701,33 @@ body.modal-open {
 /* Modales Nivel 2: Crear/Editar Carpeta, Crear/Editar Hábito, Nota de Hábito */
 .modal-level-2 {
   z-index: 20000 !important;
+}
+
+/* Pop-ups de máxima jerarquía: Hábito y Carpeta SIEMPRE por encima de Administrar Carpetas */
+#new-habit-modal,
+#new-folder-modal {
+  z-index: 999999 !important;
+  position: fixed !important;
+  inset: 0 !important;
+}
+
+#folder-manager-modal {
+  z-index: 10000 !important;
+}
+
+/* Píldora de Categoría del Diario Seleccionada */
+.journal-cat-pill {
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.journal-cat-pill.is-selected {
+  outline: 2.5px solid #2B2F38 !important;
+  outline-offset: 1px;
+  transform: scale(1.06);
+  font-weight: 800 !important;
+  opacity: 1 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
 }
 
 /* Alertas, Confirmaciones y Toasts */

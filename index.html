@@ -395,12 +395,12 @@
           </div>
         </div>
 
-        <!-- Leyenda de Fases -->
+        <!-- Leyenda de Fases (Paleta de Alto Contraste) -->
         <div class="flex flex-wrap items-center gap-2 mb-3 text-[11px] font-bold text-stone-600 bg-stone-50 p-2.5 rounded-xl border border-stone-200">
-          <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-md bg-[#FDE8E8] border border-[#FEB2B2]"></span> Menstruación</span>
-          <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-md bg-[#E8F5E9] border border-[#9AE6B4]"></span> Folicular</span>
-          <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-md bg-[#FEF7E8] border border-[#FBD38D]"></span> Ovulación / Fértil</span>
-          <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-md bg-[#FFF0EB] border border-[#FBD38D]"></span> Lútea</span>
+          <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-md bg-[#FFE4E6] border border-[#E11D48]"></span> 🩸 Menstruación</span>
+          <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-md bg-[#D1FAE5] border border-[#059669]"></span> 🌿 Folicular</span>
+          <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-md bg-[#EDE9FE] border border-[#7C3AED]"></span> ✨ Ovulación / Fértil</span>
+          <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-md bg-[#FEF3C7] border border-[#D97706]"></span> 🌙 Lútea</span>
         </div>
 
         <!-- Contenedor Carrusel Horizontal Multi-Mes -->
@@ -678,9 +678,13 @@
         </div>
 
         <div class="flex items-center justify-end gap-2 pt-2">
-          <button id="lightbox-edit-btn" onclick="" class="btn-tactile btn-tactile-white px-3.5 py-2 text-xs gap-1.5">
+          <button id="lightbox-edit-btn" onclick="" class="btn-tactile btn-tactile-white px-3.5 py-2 text-xs gap-1.5 hidden">
             <span>✏️</span>
-            <span>Editar este registro</span>
+            <span>Editar</span>
+          </button>
+          <button id="lightbox-delete-btn" onclick="" class="btn-tactile btn-tactile-danger px-3.5 py-2 text-xs gap-1.5 hidden">
+            <span>🗑️</span>
+            <span>Eliminar</span>
           </button>
           <button onclick="closeLightboxModal()" class="btn-tactile btn-tactile-rose px-4 py-2 text-xs">
             Cerrar
@@ -724,30 +728,19 @@
                  class="w-full text-xs font-mono p-2.5 rounded-xl border border-stone-200 bg-stone-50" />
         </div>
 
-        <!-- Estado de Conexión -->
+        <!-- Estado de Conexión en Tiempo Real -->
         <div>
-          <label class="block font-bold text-stone-700 mb-1">Estado de Sincronización:</label>
-          <div id="sync-status-badge" class="p-2.5 rounded-xl bg-emerald-50 text-emerald-800 font-semibold text-[11px] flex items-center justify-between">
-            <span>🟢 LocalStorage Activo</span>
-            <span id="sync-time-lbl" class="text-[10px] text-emerald-600 font-normal">Sincronizado</span>
+          <label class="block font-bold text-stone-700 mb-1">Estado de la Base de Datos:</label>
+          <div id="sync-status-badge" class="p-2.5 rounded-xl bg-emerald-50 text-emerald-800 font-semibold text-[11px] flex items-center justify-between border border-emerald-200 shadow-2xs">
+            <span id="sync-status-text">☁️ Base de Datos en Vivo (Google Sheets Conectado)</span>
+            <span id="sync-time-lbl" class="text-[10px] text-emerald-600 font-normal">En tiempo real</span>
           </div>
         </div>
 
         <div class="flex gap-2 pt-2">
-          <button onclick="saveAllSettings()" class="flex-1 btn-tactile btn-tactile-sage py-2.5 text-xs">
-            Guardar Cambios
+          <button onclick="saveAllSettings()" class="w-full btn-tactile btn-tactile-sage py-2.5 text-xs font-bold">
+            💾 Guardar Configuración
           </button>
-          <button id="btn-manual-sync" onclick="triggerManualSync()" class="btn-tactile btn-tactile-white px-3 py-2.5 text-xs">
-            Sincronizar Ahora 🔄
-          </button>
-        </div>
-
-        <!-- Botón Especial: Recargar Maquetado con Datos de Prueba -->
-        <div class="pt-2 border-t border-stone-100">
-          <button type="button" onclick="window.resetToMockData()" class="w-full btn-tactile btn-tactile-rose py-2.5 text-xs font-bold shadow-sm">
-            🌸 Restaurar Datos de Prueba Completos
-          </button>
-          <p class="text-[10px] text-stone-400 text-center mt-1">Recarga hábitos, diario, fotos, ciclo y métricas de prueba si deseas reiniciar.</p>
         </div>
 
         <!-- Diagnóstico Rápido -->
@@ -763,162 +756,6 @@
           </details>
         </div>
 
-      </div>
-    </div>
-  </div>
-
-  <!-- ========================================================================= -->
-  <!-- 5. MODAL: NUEVO / EDITAR HÁBITO -->
-  <!-- ========================================================================= -->
-  <div id="new-habit-modal" class="modal-overlay modal-level-2">
-    <div class="bg-white rounded-3xl p-5 md:p-6 max-w-md w-full border border-stone-200 shadow-2xl animate-pop max-h-[90vh] overflow-y-auto">
-      <div class="flex items-center justify-between pb-3 border-b border-stone-100 mb-3">
-        <h3 id="habit-modal-title" class="font-serif font-bold text-lg text-stone-800">Nuevo Hábito</h3>
-        <button onclick="closeNewHabitModal()" class="text-stone-400 hover:text-stone-700 text-sm font-bold">✕</button>
-      </div>
-
-      <div class="space-y-3.5 text-xs">
-        <input type="hidden" id="editing-habit-id" value="" />
-
-        <div>
-          <label class="block font-bold text-stone-700 mb-1">Nombre del Hábito:</label>
-          <input type="text" id="new-habit-name" placeholder="Ej. Pasear a Matilda, Limpieza de mesas..." class="w-full text-xs p-2.5 rounded-xl border border-stone-200 bg-stone-50 focus:bg-white" />
-        </div>
-
-        <div>
-          <label class="block font-bold text-stone-700 mb-1">📁 Carpeta Global:</label>
-          <select id="new-habit-folder-select" class="w-full text-xs p-2.5 rounded-xl border border-stone-200 bg-stone-50"></select>
-        </div>
-
-        <div>
-          <label class="block font-bold text-stone-700 mb-1">📅 Días Programados:</label>
-          <div class="grid grid-cols-7 gap-1 text-center font-bold text-[11px]">
-            <label class="cursor-pointer p-1.5 rounded-lg border border-stone-200 has-[:checked]:bg-emerald-100 has-[:checked]:border-emerald-400">
-              <input type="checkbox" value="L" class="habit-day-checkbox sr-only" checked /> L
-            </label>
-            <label class="cursor-pointer p-1.5 rounded-lg border border-stone-200 has-[:checked]:bg-emerald-100 has-[:checked]:border-emerald-400">
-              <input type="checkbox" value="M" class="habit-day-checkbox sr-only" checked /> M
-            </label>
-            <label class="cursor-pointer p-1.5 rounded-lg border border-stone-200 has-[:checked]:bg-emerald-100 has-[:checked]:border-emerald-400">
-              <input type="checkbox" value="X" class="habit-day-checkbox sr-only" checked /> X
-            </label>
-            <label class="cursor-pointer p-1.5 rounded-lg border border-stone-200 has-[:checked]:bg-emerald-100 has-[:checked]:border-emerald-400">
-              <input type="checkbox" value="J" class="habit-day-checkbox sr-only" checked /> J
-            </label>
-            <label class="cursor-pointer p-1.5 rounded-lg border border-stone-200 has-[:checked]:bg-emerald-100 has-[:checked]:border-emerald-400">
-              <input type="checkbox" value="V" class="habit-day-checkbox sr-only" checked /> V
-            </label>
-            <label class="cursor-pointer p-1.5 rounded-lg border border-stone-200 has-[:checked]:bg-emerald-100 has-[:checked]:border-emerald-400">
-              <input type="checkbox" value="S" class="habit-day-checkbox sr-only" checked /> S
-            </label>
-            <label class="cursor-pointer p-1.5 rounded-lg border border-stone-200 has-[:checked]:bg-emerald-100 has-[:checked]:border-emerald-400">
-              <input type="checkbox" value="D" class="habit-day-checkbox sr-only" checked /> D
-            </label>
-          </div>
-        </div>
-
-        <div>
-          <label class="block font-bold text-stone-700 mb-1">🔢 Meta Diaria (Veces al día):</label>
-          <input type="number" id="new-habit-times" value="1" min="1" max="15" class="w-24 text-xs p-2 rounded-xl border border-stone-200 bg-stone-50" />
-        </div>
-
-        <div>
-          <div class="flex items-center justify-between mb-1.5">
-            <label class="font-bold text-stone-700">Ícono Seleccionado:</label>
-            <input type="text" id="new-habit-emoji" value="🌸" class="w-12 text-center text-lg p-1 rounded-xl border border-stone-200 bg-stone-50" />
-          </div>
-
-          <div class="flex flex-wrap gap-1 mb-2">
-            <button type="button" onclick="setEmojiCategory('hogar')" data-cat="hogar" class="emoji-tab-btn active">🏠 Hogar</button>
-            <button type="button" onclick="setEmojiCategory('matilda')" data-cat="matilda" class="emoji-tab-btn">🐶 Matilda</button>
-            <button type="button" onclick="setEmojiCategory('salud')" data-cat="salud" class="emoji-tab-btn">🌸 Salud</button>
-            <button type="button" onclick="setEmojiCategory('deporte')" data-cat="deporte" class="emoji-tab-btn">🏃‍♀️ Deporte</button>
-            <button type="button" onclick="setEmojiCategory('comida')" data-cat="comida" class="emoji-tab-btn">🥗 Comida</button>
-            <button type="button" onclick="setEmojiCategory('estudio')" data-cat="estudio" class="emoji-tab-btn">📚 Estudio</button>
-            <button type="button" onclick="setEmojiCategory('aesthetic')" data-cat="aesthetic" class="emoji-tab-btn">✨ Cuchis</button>
-          </div>
-
-          <div id="emoji-picker-grid" class="flex flex-wrap gap-1 p-2 bg-stone-50 rounded-xl border border-stone-200 max-h-24 overflow-y-auto"></div>
-        </div>
-
-        <div>
-          <label class="block font-bold text-stone-700 mb-1">Color Pastel:</label>
-          <select id="new-habit-color" class="w-full text-xs p-2 rounded-xl border border-stone-200 bg-stone-50">
-            <option value="#88A28E">Verde Salvia</option>
-            <option value="#D9969D">Rosa Empolvado</option>
-            <option value="#9C8EC9">Lavanda Pastel</option>
-            <option value="#E8927C">Melocotón / Coral</option>
-            <option value="#E5A93C">Dorado Suave</option>
-            <option value="#7BAFD4">Azul Cielo</option>
-          </select>
-        </div>
-
-        <div class="flex gap-2 pt-2">
-          <button onclick="saveNewHabit()" class="flex-1 btn-tactile btn-tactile-sage py-3 text-xs md:text-sm">
-            ✓ Guardar Hábito
-          </button>
-          <button id="btn-delete-habit" onclick="deleteCurrentEditingHabit()" class="hidden btn-tactile btn-tactile-danger px-3 py-3 text-xs">
-            🗑️ Eliminar
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ========================================================================= -->
-  <!-- 6. MODAL: NUEVA / EDITAR CARPETA -->
-  <!-- ========================================================================= -->
-  <div id="new-folder-modal" class="modal-overlay modal-level-2">
-    <div class="bg-white rounded-3xl p-6 max-w-md w-full border border-stone-200 shadow-2xl animate-pop">
-      <div class="flex items-center justify-between pb-3 border-b border-stone-100 mb-3">
-        <h3 id="folder-modal-title" class="font-serif font-bold text-lg text-stone-800">Nueva Carpeta Global</h3>
-        <button onclick="closeNewFolderModal()" class="text-stone-400 hover:text-stone-700 text-sm font-bold">✕</button>
-      </div>
-
-      <div class="space-y-3.5 text-xs">
-        <input type="hidden" id="editing-folder-id" value="" />
-
-        <div>
-          <label class="block font-bold text-stone-700 mb-1">Nombre de la Carpeta:</label>
-          <input type="text" id="new-folder-name" placeholder="Ej. Limpieza, Matilda..." class="w-full text-xs p-2.5 rounded-xl border border-stone-200 bg-stone-50 focus:bg-white" />
-        </div>
-        <div>
-          <label class="block font-bold text-stone-700 mb-1">Ícono:</label>
-          <input type="text" id="new-folder-icon" value="📁" class="w-16 text-center text-lg p-1.5 rounded-xl border border-stone-200 bg-stone-50" />
-        </div>
-        <div>
-          <label class="block font-bold text-stone-700 mb-1">Color Pastel:</label>
-          <select id="new-folder-color" class="w-full text-xs p-2 rounded-xl border border-stone-200 bg-stone-50">
-            <option value="#88A28E">Verde Salvia</option>
-            <option value="#D9969D">Rosa Empolvado</option>
-            <option value="#E5A93C">Dorado Suave</option>
-            <option value="#7BAFD4">Azul Cielo</option>
-            <option value="#9C8EC9">Lavanda</option>
-          </select>
-        </div>
-
-        <div class="flex gap-2 pt-2">
-          <button onclick="saveNewFolder()" class="flex-1 btn-tactile btn-tactile-sage py-2.5 text-xs font-bold">
-            💾 Guardar Cambios de Carpeta
-          </button>
-          <button id="btn-delete-folder" onclick="deleteCurrentEditingFolder()" class="hidden btn-tactile btn-tactile-danger px-3 py-2.5 text-xs">
-            🗑️ Eliminar esta Carpeta
-          </button>
-        </div>
-
-        <!-- Sección B: Hábitos dentro de esta Carpeta (Solo al Editar) -->
-        <div id="folder-editing-habits-section" class="pt-3 border-t border-stone-200 hidden space-y-2">
-          <div class="flex items-center justify-between">
-            <span class="font-bold text-stone-700 text-xs">📋 Hábitos en esta Carpeta:</span>
-            <button type="button" id="btn-add-habit-to-editing-folder" onclick="openNewHabitFromCurrentFolder()" class="btn-tactile btn-tactile-sage px-2 py-1 text-[11px] gap-1 font-semibold">
-              <span>➕</span>
-              <span>Agregar Hábito</span>
-            </button>
-          </div>
-          <div id="folder-editing-habits-container" class="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-            <!-- Renderizado dinámico de hábitos en esta carpeta -->
-          </div>
-        </div>
       </div>
     </div>
   </div>
@@ -1027,6 +864,162 @@
         <!-- Lista de Carpetas con Mini-Dashboard y Hábitos Desplegables -->
         <div id="folder-manager-cards-container" class="space-y-3">
           <!-- Renderizado dinámico -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 5. MODAL: NUEVA / EDITAR CARPETA (Nivel Superior) -->
+  <!-- ========================================================================= -->
+  <div id="new-folder-modal" class="modal-overlay modal-level-2">
+    <div class="bg-white rounded-3xl p-6 max-w-md w-full border border-stone-200 shadow-2xl animate-pop">
+      <div class="flex items-center justify-between pb-3 border-b border-stone-100 mb-3">
+        <h3 id="folder-modal-title" class="font-serif font-bold text-lg text-stone-800">Nueva Carpeta Global</h3>
+        <button onclick="closeNewFolderModal()" class="text-stone-400 hover:text-stone-700 text-sm font-bold">✕</button>
+      </div>
+
+      <div class="space-y-3.5 text-xs">
+        <input type="hidden" id="editing-folder-id" value="" />
+
+        <div>
+          <label class="block font-bold text-stone-700 mb-1">Nombre de la Carpeta:</label>
+          <input type="text" id="new-folder-name" placeholder="Ej. Limpieza, Matilda..." class="w-full text-xs p-2.5 rounded-xl border border-stone-200 bg-stone-50 focus:bg-white" />
+        </div>
+        <div>
+          <label class="block font-bold text-stone-700 mb-1">Ícono:</label>
+          <input type="text" id="new-folder-icon" value="📁" class="w-16 text-center text-lg p-1.5 rounded-xl border border-stone-200 bg-stone-50" />
+        </div>
+        <div>
+          <label class="block font-bold text-stone-700 mb-1">Color Pastel:</label>
+          <select id="new-folder-color" class="w-full text-xs p-2 rounded-xl border border-stone-200 bg-stone-50">
+            <option value="#88A28E">Verde Salvia</option>
+            <option value="#D9969D">Rosa Empolvado</option>
+            <option value="#E5A93C">Dorado Suave</option>
+            <option value="#7BAFD4">Azul Cielo</option>
+            <option value="#9C8EC9">Lavanda</option>
+          </select>
+        </div>
+
+        <div class="flex gap-2 pt-2">
+          <button onclick="saveNewFolder()" class="flex-1 btn-tactile btn-tactile-sage py-2.5 text-xs font-bold">
+            💾 Guardar Cambios de Carpeta
+          </button>
+          <button id="btn-delete-folder" onclick="deleteCurrentEditingFolder()" class="hidden btn-tactile btn-tactile-danger px-3 py-2.5 text-xs">
+            🗑️ Eliminar esta Carpeta
+          </button>
+        </div>
+
+        <!-- Sección B: Hábitos dentro de esta Carpeta (Solo al Editar) -->
+        <div id="folder-editing-habits-section" class="pt-3 border-t border-stone-200 hidden space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-stone-700 text-xs">📋 Hábitos en esta Carpeta:</span>
+            <button type="button" id="btn-add-habit-to-editing-folder" onclick="openNewHabitFromCurrentFolder()" class="btn-tactile btn-tactile-sage px-2 py-1 text-[11px] gap-1 font-semibold">
+              <span>➕</span>
+              <span>Agregar Hábito</span>
+            </button>
+          </div>
+          <div id="folder-editing-habits-container" class="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+            <!-- Renderizado dinámico de hábitos en esta carpeta -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 6. MODAL: NUEVO / EDITAR HÁBITO (Nivel Superior Máximo) -->
+  <!-- ========================================================================= -->
+  <div id="new-habit-modal" class="modal-overlay modal-level-2">
+    <div class="bg-white rounded-3xl p-5 md:p-6 max-w-md w-full border border-stone-200 shadow-2xl animate-pop max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between pb-3 border-b border-stone-100 mb-3">
+        <h3 id="habit-modal-title" class="font-serif font-bold text-lg text-stone-800">Nuevo Hábito</h3>
+        <button onclick="closeNewHabitModal()" class="text-stone-400 hover:text-stone-700 text-sm font-bold">✕</button>
+      </div>
+
+      <div class="space-y-3.5 text-xs">
+        <input type="hidden" id="editing-habit-id" value="" />
+
+        <div>
+          <label class="block font-bold text-stone-700 mb-1">Nombre del Hábito:</label>
+          <input type="text" id="new-habit-name" placeholder="Ej. Pasear a Matilda, Limpieza de mesas..." class="w-full text-xs p-2.5 rounded-xl border border-stone-200 bg-stone-50 focus:bg-white" />
+        </div>
+
+        <div>
+          <label class="block font-bold text-stone-700 mb-1">📁 Carpeta Global:</label>
+          <select id="new-habit-folder-select" class="w-full text-xs p-2.5 rounded-xl border border-stone-200 bg-stone-50"></select>
+        </div>
+
+        <div>
+          <label class="block font-bold text-stone-700 mb-1">📅 Días Programados:</label>
+          <div class="grid grid-cols-7 gap-1 text-center font-bold text-[11px]">
+            <label class="cursor-pointer p-1.5 rounded-lg border border-stone-200 has-[:checked]:bg-emerald-100 has-[:checked]:border-emerald-400">
+              <input type="checkbox" value="L" class="habit-day-checkbox sr-only" checked /> L
+            </label>
+            <label class="cursor-pointer p-1.5 rounded-lg border border-stone-200 has-[:checked]:bg-emerald-100 has-[:checked]:border-emerald-400">
+              <input type="checkbox" value="M" class="habit-day-checkbox sr-only" checked /> M
+            </label>
+            <label class="cursor-pointer p-1.5 rounded-lg border border-stone-200 has-[:checked]:bg-emerald-100 has-[:checked]:border-emerald-400">
+              <input type="checkbox" value="X" class="habit-day-checkbox sr-only" checked /> X
+            </label>
+            <label class="cursor-pointer p-1.5 rounded-lg border border-stone-200 has-[:checked]:bg-emerald-100 has-[:checked]:border-emerald-400">
+              <input type="checkbox" value="J" class="habit-day-checkbox sr-only" checked /> J
+            </label>
+            <label class="cursor-pointer p-1.5 rounded-lg border border-stone-200 has-[:checked]:bg-emerald-100 has-[:checked]:border-emerald-400">
+              <input type="checkbox" value="V" class="habit-day-checkbox sr-only" checked /> V
+            </label>
+            <label class="cursor-pointer p-1.5 rounded-lg border border-stone-200 has-[:checked]:bg-emerald-100 has-[:checked]:border-emerald-400">
+              <input type="checkbox" value="S" class="habit-day-checkbox sr-only" checked /> S
+            </label>
+            <label class="cursor-pointer p-1.5 rounded-lg border border-stone-200 has-[:checked]:bg-emerald-100 has-[:checked]:border-emerald-400">
+              <input type="checkbox" value="D" class="habit-day-checkbox sr-only" checked /> D
+            </label>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-stone-700 mb-1">🔢 Meta Diaria (Veces al día):</label>
+          <input type="number" id="new-habit-times" value="1" min="1" max="15" class="w-24 text-xs p-2 rounded-xl border border-stone-200 bg-stone-50" />
+        </div>
+
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="font-bold text-stone-700">Ícono Seleccionado:</label>
+            <input type="text" id="new-habit-emoji" value="🌸" class="w-12 text-center text-lg p-1 rounded-xl border border-stone-200 bg-stone-50" />
+          </div>
+
+          <div class="flex flex-wrap gap-1 mb-2">
+            <button type="button" onclick="setEmojiCategory('hogar')" data-cat="hogar" class="emoji-tab-btn active">🏠 Hogar</button>
+            <button type="button" onclick="setEmojiCategory('matilda')" data-cat="matilda" class="emoji-tab-btn">🐶 Matilda</button>
+            <button type="button" onclick="setEmojiCategory('salud')" data-cat="salud" class="emoji-tab-btn">🌸 Salud</button>
+            <button type="button" onclick="setEmojiCategory('deporte')" data-cat="deporte" class="emoji-tab-btn">🏃‍♀️ Deporte</button>
+            <button type="button" onclick="setEmojiCategory('comida')" data-cat="comida" class="emoji-tab-btn">🥗 Comida</button>
+            <button type="button" onclick="setEmojiCategory('estudio')" data-cat="estudio" class="emoji-tab-btn">📚 Estudio</button>
+            <button type="button" onclick="setEmojiCategory('aesthetic')" data-cat="aesthetic" class="emoji-tab-btn">✨ Cuchis</button>
+          </div>
+
+          <div id="emoji-picker-grid" class="flex flex-wrap gap-1 p-2 bg-stone-50 rounded-xl border border-stone-200 max-h-24 overflow-y-auto"></div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-stone-700 mb-1">Color Pastel:</label>
+          <select id="new-habit-color" class="w-full text-xs p-2 rounded-xl border border-stone-200 bg-stone-50">
+            <option value="#88A28E">Verde Salvia</option>
+            <option value="#D9969D">Rosa Empolvado</option>
+            <option value="#9C8EC9">Lavanda Pastel</option>
+            <option value="#E8927C">Melocotón / Coral</option>
+            <option value="#E5A93C">Dorado Suave</option>
+            <option value="#7BAFD4">Azul Cielo</option>
+          </select>
+        </div>
+
+        <div class="flex gap-2 pt-2">
+          <button onclick="saveNewHabit()" class="flex-1 btn-tactile btn-tactile-sage py-3 text-xs md:text-sm">
+            ✓ Guardar Hábito
+          </button>
+          <button id="btn-delete-habit" onclick="deleteCurrentEditingHabit()" class="hidden btn-tactile btn-tactile-danger px-3 py-3 text-xs">
+            🗑️ Eliminar
+          </button>
         </div>
       </div>
     </div>
