@@ -469,7 +469,7 @@
       const cycleLogs = localStorage.getItem("vanetracker_cycle_logs");
       if (cycleLogs) state.cycleLogs = JSON.parse(cycleLogs);
 
-      const url = localStorage.getItem("vanetracker_sheets_url");
+      const url = localStorage.getItem("vane_script_url") || localStorage.getItem("vanetracker_sheets_url");
       if (url) state.googleSheetsUrl = url;
 
       const sheetId = localStorage.getItem("vanetracker_spreadsheet_id");
@@ -477,11 +477,14 @@
 
       const mood = localStorage.getItem(`vanetracker_mood_${state.selectedDate}`);
       if (mood) state.currentDayMood = mood;
+
+      normalizeHabitsAndFolders();
     } catch (e) {}
   }
 
   function saveToLocalStorage() {
     try {
+      normalizeHabitsAndFolders();
       localStorage.setItem("vanetracker_sound", state.soundEnabled);
       localStorage.setItem("vanetracker_folders", JSON.stringify(state.folders));
       localStorage.setItem("vanetracker_habits", JSON.stringify(state.habitsCatalog));
@@ -491,11 +494,115 @@
       localStorage.setItem("vanetracker_journal_categories", JSON.stringify(state.journalCategories));
       localStorage.setItem("vanetracker_cycle_settings", JSON.stringify(state.cycleSettings));
       localStorage.setItem("vanetracker_cycle_logs", JSON.stringify(state.cycleLogs));
-      localStorage.setItem("vanetracker_sheets_url", state.googleSheetsUrl);
+      localStorage.setItem("vane_script_url", state.googleSheetsUrl || "");
+      localStorage.setItem("vanetracker_sheets_url", state.googleSheetsUrl || "");
       localStorage.setItem("vanetracker_spreadsheet_id", state.spreadsheetId);
       localStorage.setItem(`vanetracker_mood_${state.selectedDate}`, state.currentDayMood);
     } catch (e) {}
   }
+
+  // ============================================================================
+  // UTILIDADES GLOBALES DE MODALES, CARPETAS Y HÁBITOS (V5.1)
+  // ============================================================================
+  function updateBodyModalScrollLock() {
+    const openModals = document.querySelectorAll(
+      ".modal-overlay.open, .modal-overlay.active, .lightbox-overlay.open, .lightbox-overlay.active"
+    );
+    if (openModals && openModals.length > 0) {
+      document.body.classList.add("modal-open");
+    } else {
+      document.body.classList.remove("modal-open");
+    }
+  }
+  window.updateBodyModalScrollLock = updateBodyModalScrollLock;
+
+  function normalizeHabitsAndFolders() {
+    if (!Array.isArray(state.folders)) state.folders = [];
+    if (!Array.isArray(state.habitsCatalog)) state.habitsCatalog = [];
+
+    state.folders.forEach((f, idx) => {
+      if (!f.ID_Carpeta && f.id) f.ID_Carpeta = String(f.id);
+      if (!f.id && f.ID_Carpeta) f.id = String(f.ID_Carpeta);
+      if (!f.ID_Carpeta) f.ID_Carpeta = `c_${Date.now()}_${idx}`;
+      f.id = String(f.ID_Carpeta);
+    });
+
+    state.habitsCatalog.forEach((h, idx) => {
+      if (!h.ID_Habito && h.id) h.ID_Habito = String(h.id);
+      if (!h.id && h.ID_Habito) h.id = String(h.ID_Habito);
+      if (!h.ID_Habito) h.ID_Habito = `h_${Date.now()}_${idx}`;
+      h.id = String(h.ID_Habito);
+
+      if (!h.folderId && h.Carpeta_Global) {
+        const match = state.folders.find(f => f.Nombre === h.Carpeta_Global);
+        if (match) h.folderId = String(match.ID_Carpeta);
+      } else if (h.folderId && !h.Carpeta_Global) {
+        const match = state.folders.find(f => String(f.ID_Carpeta) === String(h.folderId));
+        if (match) h.Carpeta_Global = match.Nombre;
+      }
+      if (h.folderId) h.folderId = String(h.folderId);
+    });
+
+    state.habits = state.habitsCatalog;
+  }
+  window.normalizeHabitsAndFolders = normalizeHabitsAndFolders;
+
+  function getHabitsForFolder(folder) {
+    if (!folder) return [];
+    normalizeHabitsAndFolders();
+    const fId = String(folder.ID_Carpeta || folder.id || "").trim();
+    const fName = String(folder.Nombre || "").trim().toLowerCase();
+    const list = state.habitsCatalog || state.habits || [];
+    return list.filter(h => {
+      const hFolderId = String(h.folderId || h.carpetaId || h.ID_Carpeta || "").trim();
+      const hFolderName = String(h.Carpeta_Global || h.carpeta || "").trim().toLowerCase();
+      if (fId && hFolderId && hFolderId === fId) return true;
+      if (fName && hFolderName && hFolderName === fName) return true;
+      return false;
+    });
+  }
+  window.getHabitsForFolder = getHabitsForFolder;
+
+  function getOrphanHabits() {
+    normalizeHabitsAndFolders();
+    const validFolderIds = new Set(state.folders.map(f => String(f.ID_Carpeta || f.id)));
+    const validFolderNames = new Set(state.folders.map(f => String(f.Nombre).trim().toLowerCase()));
+    const list = state.habitsCatalog || state.habits || [];
+    return list.filter(h => {
+      const fId = String(h.folderId || "").trim();
+      const fName = String(h.Carpeta_Global || "").trim().toLowerCase();
+      const hasValidId = fId && validFolderIds.has(fId);
+      const hasValidName = fName && validFolderNames.has(fName);
+      return !hasValidId && !hasValidName;
+    });
+  }
+  window.getOrphanHabits = getOrphanHabits;
+
+  window.deleteAllOrphanHabits = function () {
+    const orphans = getOrphanHabits();
+    if (orphans.length === 0) {
+      alert("No hay hábitos huérfanos.");
+      return;
+    }
+    if (!confirm(`¿Segura que deseas eliminar todos los ${orphans.length} hábitos sin carpeta asignada?`)) {
+      return;
+    }
+    const orphanIds = new Set(orphans.map(h => String(h.ID_Habito || h.id)));
+    state.habitsCatalog = state.habitsCatalog.filter(h => !orphanIds.has(String(h.ID_Habito || h.id)));
+    state.habits = state.habitsCatalog;
+    saveToLocalStorage();
+    renderHabitsModule();
+    if (typeof renderFolderManagerList === "function") renderFolderManagerList();
+    orphans.forEach(h => {
+      sendAsyncLogToBackend("delete_habit_definition", { id: h.ID_Habito, nombre: h.Nombre });
+    });
+    playGentleBlip();
+    alert(`🧹 Se eliminaron ${orphans.length} hábitos huérfanos correctamente.`);
+  };
+
+  window.renderFoldersAndHabits = function () {
+    renderHabitsModule();
+  };
 
   // ============================================================================
   // RENDER GENERAL BLINDADO CON TRY/CATCH
@@ -698,8 +805,37 @@
   // 2. MÓDULO DE HÁBITOS (CRUD COMPLETO, TOGGLE, FOTOS Y COMENTARIOS)
   // ============================================================================
   function renderHabitsModule() {
+    normalizeHabitsAndFolders();
     const container = document.getElementById("habits-list-container");
     if (!container) return;
+
+    // Alerta de Hábitos Huérfanos en pantalla principal
+    const orphanContainer = document.getElementById("habits-orphan-alert-container");
+    if (orphanContainer) {
+      const orphans = getOrphanHabits();
+      if (orphans.length > 0) {
+        orphanContainer.innerHTML = `
+          <div class="mb-3 p-3 bg-amber-50 border border-amber-300 rounded-2xl flex items-center justify-between gap-2 shadow-xs">
+            <div class="flex items-center gap-2 text-xs text-amber-900">
+              <span class="text-base">⚠️</span>
+              <span>Tienes <strong>${orphans.length}</strong> hábito(s) sueltos sin carpeta asignada.</span>
+            </div>
+            <div class="flex items-center gap-1.5 flex-shrink-0">
+              <button type="button" onclick="deleteAllOrphanHabits()" class="btn-tactile btn-tactile-danger px-2.5 py-1 text-[11px] font-bold shadow-xs">
+                🧹 Limpiar Huérfanos
+              </button>
+              <button type="button" onclick="openFolderManagerModal()" class="btn-tactile btn-tactile-white px-2.5 py-1 text-[11px] shadow-xs">
+                🗂️ Carpetas
+              </button>
+            </div>
+          </div>
+        `;
+        orphanContainer.classList.remove("hidden");
+      } else {
+        orphanContainer.innerHTML = "";
+        orphanContainer.classList.add("hidden");
+      }
+    }
 
     const dayLogs = state.habitsLog[state.selectedDate] || {};
     const activeHabits = state.habitsCatalog.filter(h => h.Activo);
@@ -727,7 +863,7 @@
 
     // Agrupación por carpetas globales
     state.folders.forEach(folder => {
-      const folderHabits = activeHabits.filter(h => h.Carpeta_Global === folder.Nombre);
+      const folderHabits = getHabitsForFolder(folder).filter(h => h.Activo);
       const isCollapsed = Boolean(state.collapsedFolders[folder.ID_Carpeta]);
 
       html += `
@@ -744,7 +880,7 @@
             <div class="flex items-center gap-1.5" onclick="event.stopPropagation()">
               <!-- Botón + Directo para agregar hábito dentro de ESTA carpeta -->
               <button type="button"
-                      onclick="openNewHabitModal('${escapeAttr(folder.Nombre)}')"
+                      onclick="openNewHabitModal('${folder.ID_Carpeta}')"
                       class="w-7 h-7 rounded-xl bg-white border border-stone-200 flex items-center justify-center text-xs text-stone-600 hover:bg-stone-100 transition-colors shadow-xs"
                       title="Agregar hábito en ${escapeAttr(folder.Nombre)}">
                 ＋
@@ -1061,11 +1197,13 @@
 
     const modal = document.getElementById("habit-note-modal");
     if (modal) modal.classList.add("open");
+    updateBodyModalScrollLock();
   };
 
   window.closeHabitNoteModal = function () {
     const modal = document.getElementById("habit-note-modal");
     if (modal) modal.classList.remove("open");
+    updateBodyModalScrollLock();
     state.habitNoteTarget = null;
     state.habitNotePhotoBase64 = null;
   };
@@ -1122,7 +1260,7 @@
   };
 
   // ============================================================================
-  // CRUD DE CARPETAS (CREAR, EDITAR, ELIMINAR)
+  // CRUD DE CARPETAS (CREAR, EDITAR, ELIMINAR CON EDICIÓN INTERNA Y BORRADO EN CASCADA)
   // ============================================================================
   window.openNewFolderModal = function () {
     const title = document.getElementById("folder-modal-title");
@@ -1131,6 +1269,7 @@
     const iconInput = document.getElementById("new-folder-icon");
     const colorInput = document.getElementById("new-folder-color");
     const deleteBtn = document.getElementById("btn-delete-folder");
+    const habitsSection = document.getElementById("folder-editing-habits-section");
 
     if (title) title.textContent = "Nueva Carpeta Global";
     if (editId) editId.value = "";
@@ -1138,13 +1277,16 @@
     if (iconInput) iconInput.value = "📁";
     if (colorInput) colorInput.value = "#88A28E";
     if (deleteBtn) deleteBtn.classList.add("hidden");
+    if (habitsSection) habitsSection.classList.add("hidden");
 
     const modal = document.getElementById("new-folder-modal");
     if (modal) modal.classList.add("open");
+    updateBodyModalScrollLock();
   };
 
   window.openEditFolderModal = function (folderId) {
-    const folder = state.folders.find(f => f.ID_Carpeta === folderId);
+    normalizeHabitsAndFolders();
+    const folder = state.folders.find(f => String(f.ID_Carpeta) === String(folderId) || String(f.id) === String(folderId));
     if (!folder) return;
 
     const title = document.getElementById("folder-modal-title");
@@ -1153,6 +1295,8 @@
     const iconInput = document.getElementById("new-folder-icon");
     const colorInput = document.getElementById("new-folder-color");
     const deleteBtn = document.getElementById("btn-delete-folder");
+    const habitsSection = document.getElementById("folder-editing-habits-section");
+    const habitsContainer = document.getElementById("folder-editing-habits-container");
 
     if (title) title.textContent = "Editar Carpeta Global";
     if (editId) editId.value = folder.ID_Carpeta;
@@ -1161,13 +1305,74 @@
     if (colorInput) colorInput.value = folder.Color_Pastel || "#88A28E";
     if (deleteBtn) deleteBtn.classList.remove("hidden");
 
+    // Sección B: Hábitos dentro de esta Carpeta
+    if (habitsSection && habitsContainer) {
+      habitsSection.classList.remove("hidden");
+      const internalHabits = getHabitsForFolder(folder);
+      if (internalHabits.length === 0) {
+        habitsContainer.innerHTML = `
+          <div class="p-3 text-center text-stone-400 text-xs bg-stone-50 rounded-xl border border-dashed border-stone-200">
+            No hay hábitos en esta carpeta todavía. Toca <strong>➕ Agregar Hábito</strong> arriba.
+          </div>
+        `;
+      } else {
+        habitsContainer.innerHTML = internalHabits.map(h => {
+          const freq = (h.Meta_Diaria_Veces || 1) > 1 ? `${h.Meta_Diaria_Veces} veces/día` : '1 vez/día';
+          return `
+            <div class="flex items-center justify-between p-2 rounded-xl bg-stone-50 border border-stone-200 gap-2">
+              <div class="flex items-center gap-2 min-w-0">
+                <span class="text-base">${h.Icono || '✨'}</span>
+                <div class="min-w-0">
+                  <span class="font-bold text-stone-800 text-xs block truncate">${escapeHtml(h.Nombre)}</span>
+                  <span class="text-[10px] text-stone-500">${freq}</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-1 flex-shrink-0">
+                <button type="button" onclick="openEditHabitModal('${h.ID_Habito}')" class="px-2 py-1 rounded-lg bg-white hover:bg-stone-200 text-stone-700 text-xs border border-stone-200 font-medium transition-colors" title="Editar Hábito">
+                  ✏️ Editar
+                </button>
+                <button type="button" onclick="window.deleteHabitFromEditFolder('${h.ID_Habito}', '${folder.ID_Carpeta}')" class="px-2 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs border border-rose-200 font-medium transition-colors" title="Borrar Hábito">
+                  🗑️ Borrar
+                </button>
+              </div>
+            </div>
+          `;
+        }).join("");
+      }
+    }
+
     const modal = document.getElementById("new-folder-modal");
     if (modal) modal.classList.add("open");
+    updateBodyModalScrollLock();
+  };
+
+  window.openNewHabitFromCurrentFolder = function () {
+    const editId = document.getElementById("editing-folder-id")?.value;
+    openNewHabitModal(editId);
+  };
+
+  window.deleteHabitFromEditFolder = function (habitId, folderId) {
+    const habit = state.habitsCatalog.find(h => String(h.ID_Habito) === String(habitId) || String(h.id) === String(habitId));
+    if (!habit) return;
+    if (confirm(`¿Segura que deseas eliminar el hábito "${habit.Nombre}"?`)) {
+      const idx = state.habitsCatalog.findIndex(h => String(h.ID_Habito) === String(habitId) || String(h.id) === String(habitId));
+      if (idx !== -1) {
+        state.habitsCatalog.splice(idx, 1);
+        state.habits = state.habitsCatalog;
+        sendAsyncLogToBackend("delete_habit_definition", { id: habit.ID_Habito, nombre: habit.Nombre });
+        saveToLocalStorage();
+        renderHabitsModule();
+        if (typeof renderFolderManagerList === "function") renderFolderManagerList();
+        openEditFolderModal(folderId);
+        playGentleBlip();
+      }
+    }
   };
 
   window.closeNewFolderModal = function () {
     const modal = document.getElementById("new-folder-modal");
     if (modal) modal.classList.remove("open");
+    updateBodyModalScrollLock();
   };
 
   window.saveNewFolder = function () {
@@ -1183,7 +1388,7 @@
 
     if (editId) {
       // Editar existente
-      const folder = state.folders.find(f => f.ID_Carpeta === editId);
+      const folder = state.folders.find(f => String(f.ID_Carpeta) === String(editId) || String(f.id) === String(editId));
       if (folder) {
         const oldName = folder.Nombre;
         folder.Nombre = name;
@@ -1192,15 +1397,20 @@
         // Reasignar hábitos si cambió el nombre
         if (oldName !== name) {
           state.habitsCatalog.forEach(h => {
-            if (h.Carpeta_Global === oldName) h.Carpeta_Global = name;
+            if (h.Carpeta_Global === oldName || String(h.folderId) === String(folder.ID_Carpeta)) {
+              h.Carpeta_Global = name;
+              h.folderId = String(folder.ID_Carpeta);
+            }
           });
         }
         sendAsyncLogToBackend("save_folder", { folder: folder });
       }
     } else {
       // Crear nueva
+      const newFolderId = `c_${Date.now()}`;
       const newFolder = {
-        ID_Carpeta: `c_${Date.now()}`,
+        ID_Carpeta: newFolderId,
+        id: newFolderId,
         Nombre: name,
         Icono: icon,
         Color_Pastel: color,
@@ -1224,28 +1434,43 @@
     const editId = document.getElementById("editing-folder-id")?.value;
     if (!editId) return;
 
-    if (confirm("¿Segura que deseas eliminar esta carpeta? Sus hábitos pasarán a la carpeta General.")) {
-      const idx = state.folders.findIndex(f => f.ID_Carpeta === editId);
-      if (idx !== -1) {
-        const folder = state.folders[idx];
-        state.folders.splice(idx, 1);
-        // Reasignar hábitos
-        state.habitsCatalog.forEach(h => {
-          if (h.Carpeta_Global === folder.Nombre) h.Carpeta_Global = "Salud & Bienestar";
+    const idx = state.folders.findIndex(f => String(f.ID_Carpeta) === String(editId) || String(f.id) === String(editId));
+    if (idx === -1) return;
+    const folder = state.folders[idx];
+    const associatedHabits = getHabitsForFolder(folder);
+    const count = associatedHabits.length;
+
+    const msg = count > 0
+      ? `¿Segura que deseas eliminar la carpeta "${folder.Nombre}"? Se eliminarán también los ${count} hábito(s) que contiene.`
+      : `¿Segura que deseas eliminar la carpeta "${folder.Nombre}"?`;
+
+    if (confirm(msg)) {
+      state.folders.splice(idx, 1);
+      // Borrado en cascada
+      if (count > 0) {
+        const habitIdsToRemove = new Set(associatedHabits.map(h => String(h.ID_Habito || h.id)));
+        state.habitsCatalog = state.habitsCatalog.filter(h => !habitIdsToRemove.has(String(h.ID_Habito || h.id)));
+        state.habits = state.habitsCatalog;
+        associatedHabits.forEach(h => {
+          sendAsyncLogToBackend("delete_habit_definition", { id: h.ID_Habito, nombre: h.Nombre });
         });
-        sendAsyncLogToBackend("delete_folder", { id: editId, nombre: folder.Nombre });
-        saveToLocalStorage();
-        renderHabitsModule();
-        window.closeNewFolderModal();
-        playGentleBlip();
       }
+      sendAsyncLogToBackend("delete_folder", { id: editId, nombre: folder.Nombre });
+      saveToLocalStorage();
+      window.closeNewFolderModal();
+      renderHabitsModule();
+      if (typeof renderFolderManagerList === "function") {
+        renderFolderManagerList();
+      }
+      playGentleBlip();
     }
   };
 
   // ============================================================================
-  // CRUD DE HÁBITOS (CREAR, EDITAR, ELIMINAR)
+  // CRUD DE HÁBITOS (CREAR, EDITAR, ELIMINAR CON INTEGRACIÓN DE CARPETAS)
   // ============================================================================
   window.openNewHabitModal = function (preselectedFolder) {
+    normalizeHabitsAndFolders();
     const title = document.getElementById("habit-modal-title");
     const editId = document.getElementById("editing-habit-id");
     const nameInput = document.getElementById("new-habit-name");
@@ -1265,12 +1490,26 @@
     // Días programados por defecto: todos
     document.querySelectorAll(".habit-day-checkbox").forEach(cb => cb.checked = true);
 
-    // Llenar select de carpetas
+    // Identificar carpeta destino preseleccionada
+    let targetFolder = null;
+    if (preselectedFolder) {
+      targetFolder = state.folders.find(f =>
+        String(f.ID_Carpeta) === String(preselectedFolder) ||
+        String(f.id) === String(preselectedFolder) ||
+        f.Nombre === preselectedFolder ||
+        escapeAttr(f.Nombre) === preselectedFolder
+      );
+    }
+    if (!targetFolder && state.folders.length > 0) {
+      targetFolder = state.folders[0];
+    }
+
+    // Llenar select de carpetas con ID_Carpeta como value
     const folderSelect = document.getElementById("new-habit-folder-select");
     if (folderSelect) {
       folderSelect.innerHTML = state.folders.map(f => {
-        const isSel = preselectedFolder && f.Nombre === preselectedFolder;
-        return `<option value="${escapeAttr(f.Nombre)}" ${isSel ? 'selected' : ''}>${f.Icono} ${escapeHtml(f.Nombre)}</option>`;
+        const isSel = targetFolder && (String(f.ID_Carpeta) === String(targetFolder.ID_Carpeta) || f.Nombre === targetFolder.Nombre);
+        return `<option value="${f.ID_Carpeta}" ${isSel ? 'selected' : ''}>${f.Icono || '📁'} ${escapeHtml(f.Nombre)}</option>`;
       }).join("");
     }
 
@@ -1278,10 +1517,12 @@
 
     const modal = document.getElementById("new-habit-modal");
     if (modal) modal.classList.add("open");
+    updateBodyModalScrollLock();
   };
 
   window.openEditHabitModal = function (habitId) {
-    const habit = state.habitsCatalog.find(h => h.ID_Habito === habitId);
+    normalizeHabitsAndFolders();
+    const habit = state.habitsCatalog.find(h => String(h.ID_Habito) === String(habitId) || String(h.id) === String(habitId));
     if (!habit) return;
 
     const title = document.getElementById("habit-modal-title");
@@ -1312,8 +1553,8 @@
     const folderSelect = document.getElementById("new-habit-folder-select");
     if (folderSelect) {
       folderSelect.innerHTML = state.folders.map(f => {
-        const isSel = f.Nombre === habit.Carpeta_Global;
-        return `<option value="${escapeAttr(f.Nombre)}" ${isSel ? 'selected' : ''}>${f.Icono} ${escapeHtml(f.Nombre)}</option>`;
+        const isSel = (habit.folderId && String(f.ID_Carpeta) === String(habit.folderId)) || f.Nombre === habit.Carpeta_Global;
+        return `<option value="${f.ID_Carpeta}" ${isSel ? 'selected' : ''}>${f.Icono || '📁'} ${escapeHtml(f.Nombre)}</option>`;
       }).join("");
     }
 
@@ -1321,11 +1562,13 @@
 
     const modal = document.getElementById("new-habit-modal");
     if (modal) modal.classList.add("open");
+    updateBodyModalScrollLock();
   };
 
   window.closeNewHabitModal = function () {
     const modal = document.getElementById("new-habit-modal");
     if (modal) modal.classList.remove("open");
+    updateBodyModalScrollLock();
   };
 
   window.saveNewHabit = function () {
@@ -1342,9 +1585,13 @@
       return;
     }
 
-    const assignedFolder = (folderSelect?.value || (state.folders[0] ? state.folders[0].Nombre : "")).trim();
-    if (!assignedFolder) {
-      alert("Por favor selecciona una carpeta para el hábito.");
+    const selectedFolderId = folderSelect?.value;
+    let selectedFolder = state.folders.find(f => String(f.ID_Carpeta) === String(selectedFolderId) || String(f.id) === String(selectedFolderId));
+    if (!selectedFolder && state.folders.length > 0) {
+      selectedFolder = state.folders[0];
+    }
+    if (!selectedFolder) {
+      alert("Por favor crea una carpeta primero.");
       return;
     }
 
@@ -1354,35 +1601,37 @@
 
     if (editId) {
       // Editar
-      const habit = state.habitsCatalog.find(h => h.ID_Habito === editId);
+      const habit = state.habitsCatalog.find(h => String(h.ID_Habito) === String(editId) || String(h.id) === String(editId));
       if (habit) {
         habit.Nombre = name;
         habit.Icono = (emojiInput?.value || "✨").trim();
         habit.Color_Pastel = colorInput?.value || "#88A28E";
-        habit.Carpeta_Global = assignedFolder;
+        habit.folderId = String(selectedFolder.ID_Carpeta);
+        habit.Carpeta_Global = selectedFolder.Nombre;
         habit.Dias_Programados = diasProg;
         habit.Meta_Diaria_Veces = parseInt(timesInput?.value) || 1;
         sendAsyncLogToBackend("save_habit_definition", { habit: habit });
       }
     } else {
       // Crear nuevo
+      const newHabitId = `h_${Date.now()}`;
       const newHabit = {
-        ID_Habito: `h_${Date.now()}`,
+        ID_Habito: newHabitId,
+        id: newHabitId,
         Nombre: name,
         Icono: (emojiInput?.value || "✨").trim(),
         Color_Pastel: colorInput?.value || "#88A28E",
-        Carpeta_Global: assignedFolder,
+        folderId: String(selectedFolder.ID_Carpeta),
+        Carpeta_Global: selectedFolder.Nombre,
         Dias_Programados: diasProg,
         Meta_Diaria_Veces: parseInt(timesInput?.value) || 1,
         Activo: true
       };
       state.habitsCatalog.push(newHabit);
+      state.habits = state.habitsCatalog;
 
       // Expandir la carpeta destino para visibilidad inmediata
-      const fObj = state.folders.find(f => f.Nombre === assignedFolder);
-      if (fObj) {
-        state.collapsedFolders[fObj.ID_Carpeta] = false;
-      }
+      state.collapsedFolders[selectedFolder.ID_Carpeta] = false;
 
       sendAsyncLogToBackend("save_habit_definition", { habit: newHabit });
     }
@@ -1403,14 +1652,18 @@
     if (!editId) return;
 
     if (confirm("¿Estás segura de eliminar este hábito?")) {
-      const idx = state.habitsCatalog.findIndex(h => h.ID_Habito === editId);
+      const idx = state.habitsCatalog.findIndex(h => String(h.ID_Habito) === String(editId) || String(h.id) === String(editId));
       if (idx !== -1) {
         const habit = state.habitsCatalog[idx];
         state.habitsCatalog.splice(idx, 1);
+        state.habits = state.habitsCatalog;
         sendAsyncLogToBackend("delete_habit_definition", { id: editId, nombre: habit.Nombre });
         saveToLocalStorage();
         renderHabitsModule();
         window.closeNewHabitModal();
+        if (typeof renderFolderManagerList === "function") {
+          renderFolderManagerList();
+        }
         playGentleBlip();
       }
     }
@@ -1922,11 +2175,13 @@
     if (input) input.value = state.todayDate;
     const modal = document.getElementById("confirm-period-modal");
     if (modal) modal.classList.add("open");
+    updateBodyModalScrollLock();
   };
 
   window.closeConfirmPeriodModal = function () {
     const modal = document.getElementById("confirm-period-modal");
     if (modal) modal.classList.remove("open");
+    updateBodyModalScrollLock();
   };
 
   window.confirmPeriodStartWithDate = function () {
@@ -2433,6 +2688,7 @@
     }
 
     if (overlay) overlay.classList.add("open");
+    updateBodyModalScrollLock();
   }
 
   window.closeLightboxModal = function (e) {
@@ -2441,6 +2697,7 @@
     }
     const overlay = document.getElementById("lightbox-modal-overlay");
     if (overlay) overlay.classList.remove("open");
+    updateBodyModalScrollLock();
   };
 
   window.toggleLightboxZoom = function (img) {
@@ -2515,7 +2772,7 @@
   function sendAsyncLogToBackend(action, payload) {
     if (!state.googleSheetsUrl) return;
     try {
-      const bodyData = Object.assign({ action: action }, payload);
+      const bodyData = Object.assign({ action: action, scriptUrl: state.googleSheetsUrl }, payload);
       fetch(state.googleSheetsUrl, {
         method: "POST",
         redirect: "follow",
@@ -2564,6 +2821,7 @@
         const cycleLogs = data.cycleLog || data.ciclo_log;
         if (Array.isArray(cycleLogs) && cycleLogs.length > 0) state.cycleLogs = cycleLogs;
 
+        normalizeHabitsAndFolders();
         saveToLocalStorage();
         renderAll();
         return true;
@@ -2575,52 +2833,86 @@
   }
   window.pullAllDataFromSheets = pullAllDataFromSheets;
 
-  async function bootstrapAutoSync() {
+  async function discoverScriptUrlFromSheet() {
     const sheetId = state.spreadsheetId || "1dAemKFvEufd0F5BcGEhP6YenrtmdCl49pIB9YA9zcTU";
-    const gvizUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=Config_Sistema`;
+    const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=Config_Sistema`;
+    const gvizJsonUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&sheet=Config_Sistema`;
 
+    let discoveredUrl = "";
+
+    // 1. Intento principal con endpoint CSV
     try {
-      const resp = await fetch(gvizUrl);
+      const resp = await fetch(csvUrl);
       if (resp.ok) {
         const text = await resp.text();
-        const jsonText = text.substring(47).slice(0, -2);
-        const json = JSON.parse(jsonText);
-        let discoveredUrl = "";
-        if (json && json.table && Array.isArray(json.table.rows)) {
-          for (const row of json.table.rows) {
-            if (row && row.c && row.c[0] && String(row.c[0].v).trim() === "APPS_SCRIPT_URL") {
-              if (row.c[1] && row.c[1].v) {
-                discoveredUrl = String(row.c[1].v).trim();
-                break;
+        const regex = /https:\/\/script\.google\.com\/macros\/s\/[a-zA-Z0-9_-]+\/exec/;
+        const match = text.match(regex);
+        if (match && match[0]) {
+          discoveredUrl = match[0].trim();
+        }
+      }
+    } catch (e) {
+      console.warn("Fallo intento CSV auto-descubrimiento:", e);
+    }
+
+    // 2. Intento de respaldo con JSON GViz si CSV no encontró match
+    if (!discoveredUrl) {
+      try {
+        const respJson = await fetch(gvizJsonUrl);
+        if (respJson.ok) {
+          const text = await respJson.text();
+          const regex = /https:\/\/script\.google\.com\/macros\/s\/[a-zA-Z0-9_-]+\/exec/;
+          const match = text.match(regex);
+          if (match && match[0]) {
+            discoveredUrl = match[0].trim();
+          } else {
+            const jsonText = text.substring(47).slice(0, -2);
+            const json = JSON.parse(jsonText);
+            if (json && json.table && Array.isArray(json.table.rows)) {
+              for (const row of json.table.rows) {
+                if (row && row.c && row.c[0] && String(row.c[0].v).trim() === "APPS_SCRIPT_URL") {
+                  if (row.c[1] && row.c[1].v) {
+                    discoveredUrl = String(row.c[1].v).trim();
+                    break;
+                  }
+                }
               }
             }
           }
         }
-
-        if (discoveredUrl) {
-          console.log("🔗 URL de Apps Script auto-descubierto:", discoveredUrl);
-          state.googleSheetsUrl = discoveredUrl;
-          localStorage.setItem("vanetracker_sheets_url", discoveredUrl);
-          const urlInput = document.getElementById("settings-sheets-url");
-          if (urlInput) urlInput.value = discoveredUrl;
-          const badge = document.getElementById("sync-status-badge");
-          if (badge) {
-            badge.innerHTML = `<span>🟢 Conectado a Google Sheets</span><span class="text-[10px] text-emerald-700">En vivo</span>`;
-          }
-          await pullAllDataFromSheets();
-          return;
-        }
+      } catch (e) {
+        console.warn("Fallo intento GViz JSON auto-descubrimiento:", e);
       }
-    } catch (e) {
-      console.warn("Auto-descubrimiento GViz no disponible o sin conexión:", e);
+    }
+
+    if (discoveredUrl) {
+      console.log("🔗 URL de Apps Script auto-descubierto:", discoveredUrl);
+      state.googleSheetsUrl = discoveredUrl;
+      localStorage.setItem("vane_script_url", discoveredUrl);
+      localStorage.setItem("vanetracker_sheets_url", discoveredUrl);
+
+      const urlInput = document.getElementById("settings-sheets-url");
+      if (urlInput) urlInput.value = discoveredUrl;
+
+      const badge = document.getElementById("sync-status-badge");
+      if (badge) {
+        badge.innerHTML = `<span>🟢 Conectado a Google Sheets</span><span class="text-[10px] text-emerald-700">En vivo</span>`;
+      }
+
+      await pullAllDataFromSheets();
+      return true;
     }
 
     if (state.googleSheetsUrl) {
       backgroundCheckSync();
       await pullAllDataFromSheets();
+      return true;
     }
+
+    return false;
   }
-  window.bootstrapAutoSync = bootstrapAutoSync;
+  window.discoverScriptUrlFromSheet = discoverScriptUrlFromSheet;
+  window.bootstrapAutoSync = discoverScriptUrlFromSheet;
 
   window.triggerManualSync = async function () {
     if (state.isSyncing) return;
@@ -2645,7 +2937,7 @@
               method: "POST",
               redirect: "follow",
               headers: { "Content-Type": "text/plain;charset=utf-8" },
-              body: JSON.stringify({ action: "save_habits_batch", records: batchRecords })
+              body: JSON.stringify({ action: "save_habits_batch", scriptUrl: state.googleSheetsUrl, records: batchRecords })
             });
           } catch (postErr) {
             console.warn("Error enviando batch de hábitos:", postErr);
@@ -2689,16 +2981,21 @@
     const modal = document.getElementById("settings-modal");
     if (modal) {
       modal.classList.add("open");
+      updateBodyModalScrollLock();
       const urlInput = document.getElementById("settings-sheets-url");
       if (urlInput) urlInput.value = state.googleSheetsUrl || "";
       const idInput = document.getElementById("settings-spreadsheet-id");
       if (idInput) idInput.value = state.spreadsheetId || "1dAemKFvEufd0F5BcGEhP6YenrtmdCl49pIB9YA9zcTU";
+      if (!state.googleSheetsUrl) {
+        discoverScriptUrlFromSheet().catch(() => {});
+      }
     }
   };
 
   window.closeSettingsModal = function () {
     const modal = document.getElementById("settings-modal");
     if (modal) modal.classList.remove("open");
+    updateBodyModalScrollLock();
   };
 
   window.saveAllSettings = async function () {
@@ -2709,6 +3006,8 @@
     if (urlInput) state.googleSheetsUrl = newUrl;
     if (idInput) state.spreadsheetId = idInput.value.trim();
 
+    localStorage.setItem("vane_script_url", state.googleSheetsUrl);
+    localStorage.setItem("vanetracker_sheets_url", state.googleSheetsUrl);
     saveToLocalStorage();
     window.closeSettingsModal();
     playSuccessSound();
@@ -2719,11 +3018,20 @@
         badge.innerHTML = `<span>🟢 Guardando en Google Sheets...</span>`;
       }
       try {
+        const fullPayload = {
+          action: "saveSystemConfig",
+          scriptUrl: state.googleSheetsUrl,
+          folders: state.folders,
+          habits: state.habitsCatalog,
+          diary: state.journalEntries,
+          cycleConfig: state.cycleSettings,
+          cycleLog: state.cycleLogs
+        };
         await fetch(state.googleSheetsUrl, {
           method: "POST",
           redirect: "follow",
           headers: { "Content-Type": "text/plain;charset=utf-8" },
-          body: JSON.stringify({ action: "saveSystemConfig", scriptUrl: state.googleSheetsUrl })
+          body: JSON.stringify(fullPayload)
         });
         if (badge) {
           badge.innerHTML = `<span>🟢 Conectado a Google Sheets</span><span class="text-[10px] text-emerald-700">En vivo</span>`;
@@ -2798,11 +3106,13 @@
     renderFolderManagerList();
     const modal = document.getElementById("folder-manager-modal");
     if (modal) modal.classList.add("open");
+    updateBodyModalScrollLock();
   };
 
   window.closeFolderManagerModal = function () {
     const modal = document.getElementById("folder-manager-modal");
     if (modal) modal.classList.remove("open");
+    updateBodyModalScrollLock();
   };
 
   window.toggleFolderManagerAccordion = function (folderId) {
@@ -2810,11 +3120,17 @@
     renderFolderManagerList();
   };
 
-  window.assignFolderToHabit = function (habitId, folderName) {
-    if (!folderName) return;
-    const habit = state.habitsCatalog.find(h => h.ID_Habito === habitId);
+  window.assignFolderToHabit = function (habitId, folderIdOrName) {
+    if (!folderIdOrName) return;
+    const habit = state.habitsCatalog.find(h => String(h.ID_Habito) === String(habitId) || String(h.id) === String(habitId));
     if (habit) {
-      habit.Carpeta_Global = folderName;
+      const matchFolder = state.folders.find(f => String(f.ID_Carpeta) === String(folderIdOrName) || f.Nombre === folderIdOrName);
+      if (matchFolder) {
+        habit.folderId = String(matchFolder.ID_Carpeta);
+        habit.Carpeta_Global = matchFolder.Nombre;
+      } else {
+        habit.Carpeta_Global = folderIdOrName;
+      }
       saveToLocalStorage();
       renderHabitsModule();
       renderFolderManagerList();
@@ -2824,22 +3140,27 @@
   };
 
   window.deleteFolderDirect = function (folderId) {
-    const folder = state.folders.find(f => f.ID_Carpeta === folderId);
+    const folder = state.folders.find(f => String(f.ID_Carpeta) === String(folderId) || String(f.id) === String(folderId));
     if (!folder) return;
 
-    const count = state.habitsCatalog.filter(h => h.Carpeta_Global === folder.Nombre).length;
+    const associatedHabits = getHabitsForFolder(folder);
+    const count = associatedHabits.length;
     const msg = count > 0
-      ? `¿Segura que deseas eliminar la carpeta "${folder.Nombre}"? Sus ${count} hábito(s) pasarán a la primera carpeta disponible.`
+      ? `¿Segura que deseas eliminar la carpeta "${folder.Nombre}"? Se eliminarán también los ${count} hábito(s) que contiene.`
       : `¿Segura que deseas eliminar la carpeta "${folder.Nombre}"?`;
 
     if (confirm(msg)) {
-      const idx = state.folders.findIndex(f => f.ID_Carpeta === folderId);
+      const idx = state.folders.findIndex(f => String(f.ID_Carpeta) === String(folderId) || String(f.id) === String(folderId));
       if (idx !== -1) {
         state.folders.splice(idx, 1);
-        const fallbackName = state.folders[0] ? state.folders[0].Nombre : "General";
-        state.habitsCatalog.forEach(h => {
-          if (h.Carpeta_Global === folder.Nombre) h.Carpeta_Global = fallbackName;
-        });
+        if (count > 0) {
+          const habitIdsToRemove = new Set(associatedHabits.map(h => String(h.ID_Habito || h.id)));
+          state.habitsCatalog = state.habitsCatalog.filter(h => !habitIdsToRemove.has(String(h.ID_Habito || h.id)));
+          state.habits = state.habitsCatalog;
+          associatedHabits.forEach(h => {
+            sendAsyncLogToBackend("delete_habit_definition", { id: h.ID_Habito, nombre: h.Nombre });
+          });
+        }
         sendAsyncLogToBackend("delete_folder", { id: folderId, nombre: folder.Nombre });
         saveToLocalStorage();
         renderHabitsModule();
@@ -2850,13 +3171,14 @@
   };
 
   window.deleteHabitDirect = function (habitId) {
-    const habit = state.habitsCatalog.find(h => h.ID_Habito === habitId);
+    const habit = state.habitsCatalog.find(h => String(h.ID_Habito) === String(habitId) || String(h.id) === String(habitId));
     if (!habit) return;
 
     if (confirm(`¿Estás segura de eliminar el hábito "${habit.Nombre}"?`)) {
-      const idx = state.habitsCatalog.findIndex(h => h.ID_Habito === habitId);
+      const idx = state.habitsCatalog.findIndex(h => String(h.ID_Habito) === String(habitId) || String(h.id) === String(habitId));
       if (idx !== -1) {
         state.habitsCatalog.splice(idx, 1);
+        state.habits = state.habitsCatalog;
         sendAsyncLogToBackend("delete_habit_definition", { id: habitId, nombre: habit.Nombre });
         saveToLocalStorage();
         renderHabitsModule();
@@ -2867,33 +3189,43 @@
   };
 
   function renderFolderManagerList() {
+    normalizeHabitsAndFolders();
     const container = document.getElementById("folder-manager-cards-container");
     const orphansCont = document.getElementById("folder-manager-orphans-container");
     if (!container) return;
 
-    // 1. Detectar hábitos huérfanos
-    const validFolderNames = new Set(state.folders.map(f => f.Nombre));
-    const orphanHabits = state.habitsCatalog.filter(h => !h.Carpeta_Global || !validFolderNames.has(h.Carpeta_Global));
+    // 1. Detectar hábitos huérfanos con botón de limpieza masiva
+    const orphanHabits = getOrphanHabits();
 
     if (orphansCont) {
       if (orphanHabits.length > 0) {
         let orpHtml = `
-          <div class="orphan-warning-box text-stone-800 space-y-2">
-            <div class="flex items-center gap-2 font-bold text-amber-800 text-xs">
-              <span>⚠️</span>
-              <span>Hábitos sin carpeta asignada (${orphanHabits.length})</span>
+          <div class="orphan-warning-box text-stone-800 space-y-2 mb-3">
+            <div class="flex items-center justify-between gap-2 font-bold text-amber-800 text-xs">
+              <div class="flex items-center gap-1.5">
+                <span>⚠️</span>
+                <span>Hábitos sin carpeta asignada (${orphanHabits.length})</span>
+              </div>
+              <button type="button" onclick="deleteAllOrphanHabits()" class="btn-tactile btn-tactile-danger px-2.5 py-1 text-[11px] font-bold shadow-xs">
+                🧹 Borrar TODOS los huérfanos
+              </button>
             </div>
-            <p class="text-[11px] text-amber-700">Por favor asígnales una carpeta para mantener tu panel ordenado:</p>
+            <p class="text-[11px] text-amber-700">Puedes asignarlos a una carpeta abajo o borrarlos todos con el botón rojo:</p>
             <div class="space-y-1.5 pt-1">
         `;
         orphanHabits.forEach(h => {
           orpHtml += `
             <div class="flex items-center justify-between gap-2 bg-white/90 p-2 rounded-xl border border-amber-200">
-              <span class="font-medium text-xs">${h.Icono || '✨'} ${escapeHtml(h.Nombre)}</span>
-              <select onchange="window.assignFolderToHabit('${h.ID_Habito}', this.value)" class="text-xs p-1 rounded-lg border border-stone-200 bg-stone-50">
-                <option value="">-- Asignar Carpeta --</option>
-                ${state.folders.map(f => `<option value="${escapeAttr(f.Nombre)}">${f.Icono} ${escapeHtml(f.Nombre)}</option>`).join("")}
-              </select>
+              <span class="font-medium text-xs truncate">${h.Icono || '✨'} ${escapeHtml(h.Nombre)}</span>
+              <div class="flex items-center gap-1.5 flex-shrink-0">
+                <select onchange="window.assignFolderToHabit('${h.ID_Habito}', this.value)" class="text-xs p-1 rounded-lg border border-stone-200 bg-stone-50">
+                  <option value="">-- Asignar Carpeta --</option>
+                  ${state.folders.map(f => `<option value="${f.ID_Carpeta}">${f.Icono} ${escapeHtml(f.Nombre)}</option>`).join("")}
+                </select>
+                <button type="button" onclick="window.deleteHabitDirect('${h.ID_Habito}')" class="p-1 rounded text-rose-500 hover:text-rose-700 hover:bg-rose-50 text-xs" title="Borrar este hábito">
+                  🗑️
+                </button>
+              </div>
             </div>
           `;
         });
@@ -2920,7 +3252,7 @@
     state.folders.forEach(folder => {
       const stats = calculateFolderMonthlyStats(folder.Nombre);
       const isExpanded = Boolean(state.folderManagerExpanded[folder.ID_Carpeta]);
-      const folderHabits = state.habitsCatalog.filter(h => h.Carpeta_Global === folder.Nombre && h.Activo);
+      const folderHabits = getHabitsForFolder(folder).filter(h => h.Activo);
 
       html += `
         <div class="folder-manager-card shadow-xs">
@@ -2935,7 +3267,7 @@
                 <div>
                   <h4 class="font-serif font-bold text-sm text-stone-800 flex items-center gap-1.5">
                     <span>${escapeHtml(folder.Nombre)}</span>
-                    <span class="text-[11px] font-sans text-stone-400">(${stats.count} hábitos)</span>
+                    <span class="text-[11px] font-sans text-stone-400">(${folderHabits.length} hábitos)</span>
                   </h4>
                   <p class="text-[10px] text-stone-500 mt-0.5">
                     ${isExpanded ? '▲ Toca para colapsar detalles' : '▼ Toca para gestionar hábitos internos'}
@@ -2974,7 +3306,7 @@
             <div class="mt-3 pt-3 border-t border-stone-200/70 space-y-2">
               <div class="flex items-center justify-between mb-1">
                 <span class="text-[11px] font-bold text-stone-600 uppercase tracking-wider">Hábitos de esta Carpeta:</span>
-                <button type="button" onclick="openNewHabitModal('${escapeAttr(folder.Nombre)}')" class="btn-tactile btn-tactile-sage px-2 py-1 text-[11px] gap-1 font-semibold">
+                <button type="button" onclick="openNewHabitModal('${folder.ID_Carpeta}')" class="btn-tactile btn-tactile-sage px-2 py-1 text-[11px] gap-1 font-semibold">
                   <span>➕</span>
                   <span>Crear Hábito en esta Carpeta</span>
                 </button>
@@ -3121,7 +3453,19 @@
         window.closeHabitNoteModal();
         window.closeConfirmPeriodModal();
         window.closeLightboxModal();
+        updateBodyModalScrollLock();
       }
+    });
+
+    // Cierre al hacer click en el fondo/backdrop de cualquier modal
+    document.querySelectorAll(".modal-overlay").forEach(overlay => {
+      overlay.addEventListener("click", (e) => {
+        if (e.target === overlay) {
+          overlay.classList.remove("open");
+          overlay.classList.remove("active");
+          updateBodyModalScrollLock();
+        }
+      });
     });
   }
 
